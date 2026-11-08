@@ -1,6 +1,7 @@
 import { resolveCause, runTrigger } from "./context";
 import { ACTOR_ICONS, fallbackIcon, stateColor } from "./appearance";
 import { REPLACED_STATES, REPLACE_WINDOW_MS } from "./vacuum";
+import { groupBursts, summarizeChatty } from "./noise";
 import { dayKey, formatDayLabel } from "./format";
 import { describeState } from "./state-message";
 import type {
@@ -24,6 +25,8 @@ export const DEFAULTS = {
   tap_action: "more-info",
   vacuum_details: true,
   hide_unavailable: true,
+  chatty: "summarize",
+  show_diagnostic: false,
   collapse_repeats: true,
 } as const;
 
@@ -62,8 +65,15 @@ export function passesFilters(
   entry: LogbookEntry,
   config: WhatHappenedConfig,
   allowed: Set<string> | undefined,
+  hass?: HomeAssistant,
 ): boolean {
   const domain = domainOf(entry);
+  if (hass && entry.entity_id && !(config.show_diagnostic ?? DEFAULTS.show_diagnostic)) {
+    const reg = hass.entities?.[entry.entity_id];
+    const picked = [config.target?.entity_id ?? []].flat().includes(entry.entity_id);
+    // Diagnostic, config and hidden entities are noise unless the user asked for them by name.
+    if (reg && (reg.entity_category || reg.hidden) && !picked) return false;
+  }
   if (allowed && (!entry.entity_id || !allowed.has(entry.entity_id))) return false;
   if (entry.entity_id && config.exclude_entities?.includes(entry.entity_id)) return false;
   if (config.include_domains?.length && !config.include_domains.includes(domain)) return false;
@@ -211,18 +221,19 @@ export function buildTimeline(
       const ms = e.when * 1000;
       return ms >= since && ms <= now + FUTURE_TOLERANCE_MS;
     })
-    .filter((e) => passesFilters(e, config, allowed))
+    .filter((e) => passesFilters(e, config, allowed, hass))
     .filter((e) => !isStandIn(e, extra))
     .sort((a, b) => b.when - a.when);
 
   const richItems = (extra?.items ?? []).filter(
     (i) => i.when >= since && i.when <= now + FUTURE_TOLERANCE_MS,
   );
-  const merged = mergeChains(
+  const chained = mergeChains(
     [...sorted.map((entry) => toItem(hass, entry, config)), ...richItems].sort(
       (a, b) => b.when - a.when,
     ),
   );
+  const merged = groupBursts(summarizeChatty(chained, config.chatty ?? DEFAULTS.chatty));
 
   const items: TimelineItem[] = [];
   let oldestOfLast = 0;

@@ -247,7 +247,7 @@ export class WhatHappenedCard extends LitElement {
         // Filter before buffering so the size cap never evicts entries that would match.
         const cfg = this._config;
         for (const event of events) {
-          if (cfg && !passesFilters(event, cfg, this._allowed)) continue;
+          if (cfg && !passesFilters(event, cfg, this._allowed, this._hass)) continue;
           this._entries.set(entryKey(event), event);
         }
         if (this._entries.size > MAX_BUFFER) this._trimBuffer();

@@ -22,6 +22,7 @@ export interface EntityRegistryEntry {
   labels?: string[];
   hidden?: boolean;
   platform?: string;
+  entity_category?: string | null;
 }
 
 export interface DeviceRegistryEntry {
@@ -86,6 +87,7 @@ export interface TargetConfig {
 
 export type TimeDisplay = "relative" | "absolute" | "both";
 export type TapAction = "more-info" | "none";
+export type ChattyMode = "summarize" | "hide" | "show";
 export type Order = "newest_first" | "oldest_first";
 
 export interface WhatHappenedConfig {
@@ -107,6 +109,8 @@ export interface WhatHappenedConfig {
   tap_action?: TapAction;
   max_height?: number;
   vacuum_details?: boolean;
+  chatty?: ChattyMode;
+  show_diagnostic?: boolean;
   hide_unavailable?: boolean;
   collapse_repeats?: boolean;
 }

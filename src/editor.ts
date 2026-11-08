@@ -47,6 +47,8 @@ const LABELS: Record<string, string> = {
   tap_action: "Tap action",
   max_height: "Maximum height",
   vacuum_details: "TapoVac-ADV: show cleaning runs with rooms, duration and reason",
+  chatty: "Very frequent entities",
+  show_diagnostic: "Include diagnostic, configuration and hidden entities",
   hide_unavailable: "Hide unavailable / unknown states",
   collapse_repeats: "Merge rapid repeats of the same event",
 };
@@ -56,6 +58,8 @@ const HELPERS: Record<string, string> = {
   max_entries: "Between 1 and 500. Rapid repeats count as one entry when merging is on.",
   target: "Leave empty to show everything. Choose areas, devices, entities or labels to narrow it.",
   include_domains: "Leave empty for all domains. Pick from the list or type your own.",
+  chatty:
+    "Entities with at least 10 entries at a pace of one per hour or faster, such as a clock sensor or an automation that runs every 15 minutes.",
   max_height:
     "Pixels. Only needed in Masonry and Panel views. In Sections views, resize the card with its handles.",
 };
@@ -155,6 +159,20 @@ const DISPLAY_SCHEMA: Schema = [
 ];
 
 const RULES_SCHEMA: Schema = [
+  {
+    name: "chatty",
+    selector: {
+      select: {
+        mode: "dropdown",
+        options: [
+          { value: "summarize", label: "Summarize in one entry" },
+          { value: "hide", label: "Hide" },
+          { value: "show", label: "Show every entry" },
+        ],
+      },
+    },
+  },
+  { name: "show_diagnostic", selector: { boolean: {} } },
   { name: "vacuum_details", selector: { boolean: {} } },
   { name: "hide_unavailable", selector: { boolean: {} } },
   { name: "collapse_repeats", selector: { boolean: {} } },

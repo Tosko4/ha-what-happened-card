@@ -104,6 +104,9 @@ const states = [
   ["media_player.tv", "playing", { friendly_name: "Living room TV" }],
   ["switch.pump", "on", { friendly_name: "Irrigation pump" }],
   ["vacuum.robot", "docked", { friendly_name: "Robot vacuum" }],
+  ["sensor.date_time", "2026-11-08, 15:19", { friendly_name: "Date & Time" }],
+  ["automation.ai", "on", { friendly_name: "AI summaries" }],
+  ["switch.status_led", "on", { friendly_name: "Status LED" }],
   ["alarm_control_panel.home", "armed_away", { friendly_name: "Home alarm" }],
 ].map(([entity_id, state, attributes]) => ({ entity_id, state, attributes }) as any);
 
@@ -221,6 +224,54 @@ const plannerLog = [
   { ts: m(54), kind: "done", text: "Finished cleaning Kitchen and Hallway." },
   { ts: m(30), kind: "docked", text: "Sent home: someone is home." },
 ];
+// Typical noise from a real installation: all of it is handled without any configuration.
+events.push(
+  ...Array.from(
+    { length: 90 },
+    (_, i) =>
+      ({
+        when: m(i + 2),
+        entity_id: "sensor.date_time",
+        name: "Date & Time",
+        state: `2026-11-08, 15:${i}`,
+      }) as LogbookEntry,
+  ),
+  ...Array.from(
+    { length: 24 },
+    (_, i) =>
+      ({
+        when: m(11),
+        entity_id: `update.card_${i}`,
+        name: `Card ${i} Update`,
+        state: "off",
+      }) as LogbookEntry,
+  ),
+  ...Array.from(
+    { length: 14 },
+    (_, i) =>
+      ({
+        when: m(15 * i + 3),
+        entity_id: "automation.ai",
+        domain: "automation",
+        name: "AI summaries",
+        message: "triggered by time pattern",
+        source: "time pattern",
+      }) as LogbookEntry,
+  ),
+  ...Array.from(
+    { length: 12 },
+    (_, i) =>
+      ({
+        when: m(30 * i + 7),
+        entity_id: "automation.helper",
+        domain: "automation",
+        name: "Turn on input boolean for 5 min",
+        message: "triggered by event 'automation_triggered'",
+        source: "event 'automation_triggered'",
+      }) as LogbookEntry,
+  ),
+  { when: m(20), entity_id: "switch.status_led", name: "Status LED", state: "on" },
+);
 events.push(
   { when: m(96), entity_id: "vacuum.robot", name: "Robot vacuum", state: "cleaning" },
   { when: m(53), entity_id: "vacuum.robot", name: "Robot vacuum", state: "docked" },
@@ -228,7 +279,10 @@ events.push(
 
 const hass: HomeAssistant = {
   states: Object.fromEntries(states.map((s: any) => [s.entity_id, s])),
-  entities: { "vacuum.robot": { entity_id: "vacuum.robot", platform: "tapo_rv30" } },
+  entities: {
+    "vacuum.robot": { entity_id: "vacuum.robot", platform: "tapo_rv30" },
+    "switch.status_led": { entity_id: "switch.status_led", entity_category: "diagnostic" },
+  },
   devices: {},
   areas: {},
   locale: { language: "en", time_format: "24" },

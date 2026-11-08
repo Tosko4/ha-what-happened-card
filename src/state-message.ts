@@ -1,3 +1,4 @@
+import { truncate } from "./noise";
 import type { HassEntity, HomeAssistant, Tone } from "./types";
 
 export interface StateDescription {
@@ -190,5 +191,5 @@ export function describeState(
   }
 
   const value = entityId ? formatValue(hass, entityId, state) : prettify(state);
-  return { verb: `changed to ${value}`, tone: "neutral" };
+  return { verb: `changed to ${truncate(value, 80)}`, tone: "neutral" };
 }
