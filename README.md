@@ -67,22 +67,49 @@ exclude_domains:
 | `tap_action`       | `more-info`    | `more-info` or `none`                                                     |
 | `max_height`       | –              | Pixels; for Masonry/Panel views                                           |
 | `vacuum_details`   | `true`         | Rich entries for TapoVac-ADV vacuums (rooms, duration, reason)            |
+| `activity`         | `meaningful`   | `meaningful` or `everything` (clocks, sensors, updates, …)                |
+| `automation_runs`  | `actions`      | `actions`, `all` or `none` (see below)                                    |
+| `chatty`           | `summarize`    | Very frequent entities: `summarize`, `hide` or `show`                     |
+| `show_diagnostic`  | `false`        | Include diagnostic, configuration and hidden entities                     |
 | `hide_unavailable` | `true`         | Hide `unavailable` / `unknown` states                                     |
 | `collapse_repeats` | `true`         | Merge rapid repeats of the same event (shown as ×N)                       |
 
 The "why" comes from the Home Assistant logbook context. Changes made physically on a device have no context, so they show without a cause line.
 
+## Smart defaults
+
+The card works out what is worth showing, so you do not have to pick entities by hand.
+
+**Shows things that happened:** lights, switches, locks, covers, doors and windows, motion, alarm, media players, vacuums, climate, scenes and people arriving or leaving, each with who or what caused it.
+
+**Leaves out by default** (tested against the log of a real house, ~500 lines an hour became a handful):
+
+- clocks, text and number sensors, battery and signal values, update entities;
+- diagnostic, configuration and hidden entities;
+- helpers (`input_boolean`, `input_select`, …) and buttons, unless a person used them. An automation flipping a helper is plumbing;
+- the `device_tracker` next to every person, and a binary sensor with no device class and no known cause;
+- the **restart echo**: dozens of entities restoring their state with no cause right after Home Assistant starts, and the "stopped" half of a restart;
+- the same action split over many entities: a script, the speaker, a status LED and a text sensor that all changed because of one automation become a single entry.
+
+- `activity: everything` shows all of it again. Picking an entity by name in `target`, or domains in `include_domains`, always shows them.
+- **Automations and scripts:** most runs are plumbing ("AI summaries was triggered", a helper toggled), so they are not listed. When a run switched something, the change is shown with "by <automation>, triggered by …". When a run said something on a speaker or sent a notification, that becomes its own entry, in the same shape as everything else: `Kitchen speaker said “Someone is at the front door”`, `by Announce visitor, triggered by Front door was opened`. `automation_runs: all` lists every run, `none` hides runs and what they said.
+- **How it knows:** the spoken text and notifications are read from the run trace, which Home Assistant only gives to admin users. Without admin rights, or with `show_actions: false`, plain runs simply stay hidden.
+- Automations triggered by other automations read "triggered by another automation"; long values are shortened.
+
 ## TapoVac-ADV vacuum support
 
-If you use [TapoVac-ADV](https://github.com/jan-tdy/TapoVac-ADV) (`tapo_rv30`), the card detects its vacuums automatically and replaces the plain "cleaning" / "docked" logbook lines with one entry per cleaning run:
+If you use [TapoVac-ADV](https://github.com/jan-tdy/TapoVac-ADV) (`tapo_rv30`), the card detects its vacuums automatically. Each cleaning run gets two entries, because they happen at two different times:
 
-> Robot vacuum cleaned Kitchen and Hallway
-> 42 min · 38 m² · bin emptied
+> **Robot vacuum started cleaning Kitchen and Hallway**
 > by Cleaning planner, triggered by Kitchen: 6 days since last clean; nobody home
+>
+> **Robot vacuum finished cleaning Kitchen and Hallway**
+> 42 min · 38 m² · bin emptied
 
-- **What and when:** rooms, start time, duration, cleaned area, emptied bin, errors (from the integration's clean history).
+- **What and when:** rooms, start and finish time, duration, cleaned area, emptied bin, errors (from the integration's clean history).
 - **Who and why:** the planner's own reason (which rooms were due, nobody home, …), a start you made yourself, or where the run came from (Tapo app, robot schedule, Alexa, automation, …).
 - **Planner events:** sent home because someone came home, "clean anyway" overrides, skipped days and start errors.
+- These replace the plain "cleaning" and "docked" logbook lines. Other states such as "returning" or "error" are still shown.
 - Updates live; set `vacuum_details: false` to turn it off. The usual `target`, `exclude_entities` and `exclude_domains` filters apply to the vacuum too.
 
 ## Development

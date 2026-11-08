@@ -22,6 +22,7 @@ export interface EntityRegistryEntry {
   labels?: string[];
   hidden?: boolean;
   platform?: string;
+  entity_category?: string | null;
 }
 
 export interface DeviceRegistryEntry {
@@ -86,6 +87,9 @@ export interface TargetConfig {
 
 export type TimeDisplay = "relative" | "absolute" | "both";
 export type TapAction = "more-info" | "none";
+export type AutomationRuns = "actions" | "all" | "none";
+export type Activity = "meaningful" | "everything";
+export type ChattyMode = "summarize" | "hide" | "show";
 export type Order = "newest_first" | "oldest_first";
 
 export interface WhatHappenedConfig {
@@ -107,6 +111,11 @@ export interface WhatHappenedConfig {
   tap_action?: TapAction;
   max_height?: number;
   vacuum_details?: boolean;
+  activity?: Activity;
+  automation_runs?: AutomationRuns;
+  show_actions?: boolean;
+  chatty?: ChattyMode;
+  show_diagnostic?: boolean;
   hide_unavailable?: boolean;
   collapse_repeats?: boolean;
 }
@@ -157,6 +166,8 @@ export interface TimelineItem {
   text?: string;
   /** Built from an integration (not the logbook): never merged with neighbours. */
   rich?: boolean;
+  /** For integration entries: a run has a start entry and a finish entry. */
+  phase?: "start" | "finish";
   /** Draw `icon` as given instead of asking <ha-state-icon>. */
   fixedIcon?: boolean;
 }

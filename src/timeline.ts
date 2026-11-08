@@ -1,6 +1,10 @@
-import { resolveCause, runTrigger } from "./context";
+import { firstEntityId, resolveCause, runTrigger } from "./context";
 import { ACTOR_ICONS, fallbackIcon, stateColor } from "./appearance";
-import { REPLACED_STATES } from "./vacuum";
+import { convertRuns } from "./runs";
+import type { ActionEvent } from "./trace";
+import { REPLACED_STATES, REPLACE_WINDOW_MS } from "./vacuum";
+import { RESTART_EXEMPT_DOMAINS, hasKnownCause, isMeaningful, isRunEntry } from "./relevance";
+import { groupBursts, summarizeChatty } from "./noise";
 import { dayKey, formatDayLabel } from "./format";
 import { describeState } from "./state-message";
 import type {
@@ -24,6 +28,11 @@ export const DEFAULTS = {
   tap_action: "more-info",
   vacuum_details: true,
   hide_unavailable: true,
+  activity: "meaningful",
+  automation_runs: "actions",
+  show_actions: true,
+  chatty: "summarize",
+  show_diagnostic: false,
   collapse_repeats: true,
 } as const;
 
@@ -62,12 +71,25 @@ export function passesFilters(
   entry: LogbookEntry,
   config: WhatHappenedConfig,
   allowed: Set<string> | undefined,
+  hass?: HomeAssistant,
 ): boolean {
   const domain = domainOf(entry);
+  if (hass && entry.entity_id && !(config.show_diagnostic ?? DEFAULTS.show_diagnostic)) {
+    const reg = hass.entities?.[entry.entity_id];
+    const picked = [config.target?.entity_id ?? []].flat().includes(entry.entity_id);
+    // Diagnostic, config and hidden entities are noise unless the user asked for them by name.
+    if (reg && (reg.entity_category || reg.hidden) && !picked) return false;
+  }
   if (allowed && (!entry.entity_id || !allowed.has(entry.entity_id))) return false;
   if (entry.entity_id && config.exclude_entities?.includes(entry.entity_id)) return false;
   if (config.include_domains?.length && !config.include_domains.includes(domain)) return false;
   if (config.exclude_domains?.includes(domain)) return false;
+  if (
+    (config.activity ?? DEFAULTS.activity) === "meaningful" &&
+    !isMeaningful(entry, config, hass)
+  ) {
+    return false;
+  }
   const hideUnavailable = config.hide_unavailable ?? DEFAULTS.hide_unavailable;
   if (hideUnavailable && (entry.state === "unavailable" || entry.state === "unknown")) return false;
   return true;
@@ -96,7 +118,10 @@ function toItem(
       verb = "was triggered";
       tone = "active";
       const trigger = runTrigger(hass, entry);
-      if (trigger) cause = { ...cause, trigger };
+      if (trigger) {
+        const raw = entry.source ?? message.replace(/^triggered by /, "");
+        cause = { ...cause, trigger, triggerEntityId: firstEntityId(raw) };
+      }
     } else {
       verb = message;
       tone = /(error|fail)/i.test(message) ? "alert" : "neutral";
@@ -122,8 +147,7 @@ function toItem(
     stateValue: entry.state,
     picture,
     isPerson,
-    isRun:
-      entry.state === undefined && entry.message !== undefined && /^triggered/.test(entry.message),
+    isRun: isRunEntry(entry),
     cause,
     count: 1,
     accent: stateColor(domain, stateObj?.attributes.device_class, entry.state, tone, useColor),
@@ -135,12 +159,28 @@ function causeSignature(item: TimelineItem): string {
   return `${c?.actor?.kind ?? ""}:${c?.actor?.name ?? ""}:${c?.trigger ?? ""}`;
 }
 
+/** A vacuum's plain "cleaning"/"docked" line is dropped when the integration has its own entry for it. */
+function isStandIn(
+  entry: LogbookEntry,
+  extra: { items: TimelineItem[]; vacuums: Set<string> } | undefined,
+): boolean {
+  if (!extra || !entry.entity_id || !extra.vacuums.has(entry.entity_id)) return false;
+  const phase = REPLACED_STATES[entry.state ?? ""];
+  if (!phase) return false;
+  return extra.items.some(
+    (i) =>
+      i.entityId === entry.entity_id &&
+      i.phase === phase &&
+      Math.abs(i.when - entry.when * 1000) <= REPLACE_WINDOW_MS,
+  );
+}
+
 /**
  * One thing that happened should be one entry: when a sensor triggered an
  * automation that switched a device, only the device entry is kept. It explains
  * the whole chain, so the automation run and the triggering state change are folded in.
  */
-function mergeChains(items: TimelineItem[]): TimelineItem[] {
+function mergeChains(items: TimelineItem[], hideExplainedRuns = true): TimelineItem[] {
   const hidden = new Set<TimelineItem>();
   for (const effect of items) {
     const actor = effect.cause?.actor;
@@ -148,6 +188,7 @@ function mergeChains(items: TimelineItem[]): TimelineItem[] {
 
     for (const run of items) {
       if (
+        hideExplainedRuns &&
         run.isRun &&
         run.entityId === actor.entityId &&
         Math.abs(run.when - effect.when) <= CHAIN_WINDOW_MS
@@ -185,36 +226,61 @@ export function buildTimeline(
   allowed?: Set<string>,
   /** Integration-built items, and the vacuums whose plain logbook state changes they replace. */
   extra?: { items: TimelineItem[]; vacuums: Set<string> },
+  /** What a run said or sent (from its trace); undefined while that is still loading. */
+  resolveRun?: (run: TimelineItem) => ActionEvent[] | undefined,
 ): DayGroup[] {
   const since = now - effectiveHours(config) * 3_600_000;
   const maxEntries = effectiveMaxEntries(config);
   const collapse = config.collapse_repeats ?? DEFAULTS.collapse_repeats;
 
-  const sorted = [...entries]
+  // Integration items outside the window are dropped first, so they can never suppress a
+  // logbook line that is still inside it.
+  const richItems = (extra?.items ?? []).filter(
+    (i) => i.when >= since && i.when <= now + FUTURE_TOLERANCE_MS,
+  );
+  const standIns = extra ? { items: richItems, vacuums: extra.vacuums } : undefined;
+
+  const list = [...entries];
+  const restarts = list
+    .filter((e) => e.domain === "homeassistant" && e.message === "started")
+    .map((e) => e.when);
+  const restartNoise = (e: LogbookEntry): boolean => {
+    if ((config.activity ?? DEFAULTS.activity) !== "meaningful") return false;
+    if (e.domain === "homeassistant") {
+      // "stopped" is only the first half of "restarted".
+      return e.message === "stopped" && restarts.some((t) => t >= e.when && t - e.when <= 900);
+    }
+    if (
+      hasKnownCause(e) ||
+      RESTART_EXEMPT_DOMAINS.has(e.domain ?? e.entity_id?.split(".")[0] ?? "")
+    ) {
+      return false;
+    }
+    // Right after Home Assistant starts, dozens of entities restore their state with no cause.
+    return restarts.some((t) => e.when >= t - 30 && e.when <= t + 180);
+  };
+
+  const sorted = list
     .filter((e) => {
       const ms = e.when * 1000;
       return ms >= since && ms <= now + FUTURE_TOLERANCE_MS;
     })
-    .filter((e) => passesFilters(e, config, allowed))
-    .filter(
-      (e) =>
-        !(
-          extra &&
-          e.entity_id &&
-          extra.vacuums.has(e.entity_id) &&
-          REPLACED_STATES.has(e.state ?? "")
-        ),
-    )
+    .filter((e) => passesFilters(e, config, allowed, hass))
+    .filter((e) => !restartNoise(e))
+    .filter((e) => !isStandIn(e, standIns))
     .sort((a, b) => b.when - a.when);
 
-  const richItems = (extra?.items ?? []).filter(
-    (i) => i.when >= since && i.when <= now + FUTURE_TOLERANCE_MS,
-  );
-  const merged = mergeChains(
-    [...sorted.map((entry) => toItem(hass, entry, config)), ...richItems].sort(
-      (a, b) => b.when - a.when,
-    ),
-  );
+  const runs = config.automation_runs ?? DEFAULTS.automation_runs;
+  const converted = convertRuns(
+    hass,
+    [...sorted.map((entry) => toItem(hass, entry, config)), ...richItems],
+    runs,
+    config.state_color ?? DEFAULTS.state_color,
+    config.show_actions === false ? undefined : resolveRun,
+  ).sort((a, b) => b.when - a.when);
+  // With automation_runs: all, runs stay visible next to what they did.
+  const chained = mergeChains(converted, runs !== "all");
+  const merged = groupBursts(summarizeChatty(chained, config.chatty ?? DEFAULTS.chatty));
 
   const items: TimelineItem[] = [];
   let oldestOfLast = 0;

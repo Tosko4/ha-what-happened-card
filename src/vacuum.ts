@@ -43,8 +43,17 @@ export const START_TYPES: Record<number, string> = {
   7: "Alice",
 };
 
-/** Logbook state changes that the richer per-run entries replace. */
-export const REPLACED_STATES = new Set(["cleaning", "returning", "docked", "paused", "idle"]);
+/**
+ * Logbook state changes that a richer integration entry stands in for: "cleaning" is the
+ * start of a run and "docked" its finish. "returning", "paused" and the rest stay as they are.
+ */
+export const REPLACED_STATES: Record<string, "start" | "finish"> = {
+  cleaning: "start",
+  docked: "finish",
+};
+
+/** How far apart a logbook state change and the integration's entry may be. */
+export const REPLACE_WINDOW_MS = 10 * 60 * 1000;
 
 /** Planner log kinds worth a timeline entry. `wait`, `pending`, `preview` and `config` are noise. */
 const LOG_KINDS = new Set(["start", "done", "override", "return", "docked", "skip", "error"]);
@@ -80,6 +89,28 @@ function nearestStart(log: PlannerLogEntry[], startedS: number, used: Set<Planne
   return best;
 }
 
+/** "Jan and Veronika came home: finishing the kitchen, then docking." */
+export function parseReturn(text: string): { people: string; note: string } | undefined {
+  const m = text.match(/^(.+?) came home: (.*?)\.?$/s);
+  return m ? { people: m[1], note: m[2] } : undefined;
+}
+
+function peopleActor(hass: HomeAssistant, people: string): Actor {
+  const names = people.split(/, | and /).map((n) => n.trim());
+  const found =
+    names.length === 1
+      ? Object.values(hass.states).find(
+          (s) => s.entity_id.startsWith("person.") && s.attributes.friendly_name === names[0],
+        )
+      : undefined;
+  return {
+    kind: "user",
+    name: people,
+    entityId: found?.entity_id,
+    picture: found?.attributes.entity_picture,
+  };
+}
+
 function plannerActor(): Actor {
   return { kind: "other", name: "Cleaning planner", icon: "mdi:calendar-clock" };
 }
@@ -92,12 +123,15 @@ function runDetails(run: HistoryRun): string[] {
   const details: string[] = [];
   if (run.minutes != null) details.push(`${run.minutes} min`);
   if (run.area != null) details.push(`${run.area} m²`);
-  if (run.rule_name) details.push(`preset “${run.rule_name}”`);
   if (run.emptied_bin) details.push("bin emptied");
   return details;
 }
 
-/** Build timeline items for one robot from its planner log and clean history. */
+/**
+ * Build timeline items for one robot from its planner log and clean history. A run gives
+ * two entries, "started cleaning" (rooms, who, why) and "finished cleaning" (duration,
+ * area, bin), because those are two things that happened at two different times.
+ */
 export function vacuumItems(
   hass: HomeAssistant,
   data: VacuumData,
@@ -135,24 +169,51 @@ export function vacuumItems(
       };
     }
 
-    const tone = failed ? "alert" : "active";
     items.push({
       ...base,
-      key: `vac|${data.entityId}|${run.started}`,
+      key: `vac|${data.entityId}|start|${run.started}`,
       when: run.started * 1000,
+      verb: parsed?.names ? `started cleaning ${parsed.names}` : "started cleaning",
+      tone: "active",
+      phase: "start",
+      icon: "mdi:robot-vacuum",
+      details: run.rule_name ? [`preset “${run.rule_name}”`] : undefined,
+      cause,
+      accent: stateColor("vacuum", undefined, "cleaning", "active", useColor),
+    });
+
+    const endMs = (run.started + (run.minutes ?? 0) * 60) * 1000;
+    items.push({
+      ...base,
+      key: `vac|${data.entityId}|finish|${run.started}`,
+      when: Math.max(endMs, run.started * 1000 + 1000),
       verb: failed
         ? `stopped with error ${run.error}`
         : parsed?.names
-          ? `cleaned ${parsed.names}`
-          : "finished a cleaning run",
-      tone,
+          ? `finished cleaning ${parsed.names}`
+          : "finished cleaning",
+      tone: failed ? "alert" : "inactive",
+      phase: "finish",
       icon: failed ? "mdi:robot-vacuum-alert" : "mdi:robot-vacuum",
       details: runDetails(run),
-      cause,
       accent: failed
         ? ALERT_COLOR
-        : stateColor("vacuum", undefined, "cleaning", "active", useColor),
+        : stateColor("vacuum", undefined, "docked", "inactive", useColor),
     });
+  }
+
+  // "Sent home" is the planner's reaction to someone coming home: say who.
+  const returns = data.log.filter((e) => e.kind === "return");
+  const returnFor = new Map<PlannerLogEntry, PlannerLogEntry>();
+  const taken = new Set<PlannerLogEntry>();
+  for (const docked of data.log.filter((e) => e.kind === "docked")) {
+    const source = returns.find(
+      (r) => !taken.has(r) && r.ts <= docked.ts && docked.ts - r.ts <= 30 * 60,
+    );
+    if (source) {
+      returnFor.set(docked, source);
+      taken.add(source);
+    }
   }
 
   // Planner events that no finished run explains (still running, no record kept, other events).
@@ -166,7 +227,24 @@ export function vacuumItems(
     )
       continue;
 
+    if (taken.has(entry)) continue; // folded into the "sent home" entry below
     const parsed = entry.kind === "start" ? parseStart(entry.text) : undefined;
+    const returned = entry.kind === "docked" ? returnFor.get(entry) : undefined;
+    const arrival = returned ? parseReturn(returned.text) : undefined;
+    if (arrival) {
+      items.push({
+        ...base,
+        key: `vac|${data.entityId}|log|${entry.ts}|docked`,
+        when: entry.ts * 1000,
+        verb: "was sent home",
+        tone: "neutral",
+        icon: "mdi:robot-vacuum",
+        details: [arrival.note.charAt(0).toUpperCase() + arrival.note.slice(1)],
+        cause: { actor: peopleActor(hass, arrival.people), trigger: "coming home" },
+        accent: stateColor("vacuum", undefined, "docked", "inactive", useColor),
+      });
+      continue;
+    }
     const tone = entry.kind === "error" ? "alert" : entry.kind === "start" ? "active" : "neutral";
     items.push({
       ...base,
@@ -175,6 +253,7 @@ export function vacuumItems(
       verb: parsed?.names ? `started cleaning ${parsed.names}` : "",
       text: parsed?.names ? undefined : entry.text.replace(/\.$/, ""),
       tone,
+      phase: entry.kind === "start" ? "start" : entry.kind === "done" ? "finish" : undefined,
       icon: entry.kind === "error" ? "mdi:robot-vacuum-alert" : "mdi:robot-vacuum",
       cause: { actor: parsed?.byUser ? userActor(hass) : plannerActor(), trigger: parsed?.why },
       accent:

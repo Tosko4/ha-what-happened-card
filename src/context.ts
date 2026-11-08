@@ -43,12 +43,17 @@ function rawTrigger(entry: LogbookEntry): string | undefined {
   return undefined;
 }
 
+/** Make raw trigger descriptions read naturally. */
+export function friendlyTrigger(text: string): string {
+  return text.replace(/event 'automation_triggered'/g, "another automation");
+}
+
 function triggerFrom(hass: HomeAssistant, entry: LogbookEntry): string | undefined {
   let raw = entry.context_source;
   if (!raw && entry.context_message?.startsWith("triggered by ")) {
     raw = entry.context_message.slice("triggered by ".length);
   }
-  return raw ? humanizeEntityIds(hass, raw) : undefined;
+  return raw ? friendlyTrigger(humanizeEntityIds(hass, raw)) : undefined;
 }
 
 function userActor(hass: HomeAssistant, userId: string): Actor {
@@ -138,5 +143,5 @@ export function runTrigger(hass: HomeAssistant, entry: LogbookEntry): string | u
     (entry.message?.startsWith("triggered by ")
       ? entry.message.slice("triggered by ".length)
       : undefined);
-  return raw ? humanizeEntityIds(hass, raw) : undefined;
+  return raw ? friendlyTrigger(humanizeEntityIds(hass, raw)) : undefined;
 }

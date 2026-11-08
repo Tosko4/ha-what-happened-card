@@ -4,6 +4,7 @@ import { classMap } from "lit/directives/class-map.js";
 import { styleMap } from "lit/directives/style-map.js";
 import { formatDateTime, formatRelative, formatTime } from "./format";
 import { subscribeLogbook } from "./logbook";
+import { TraceCache, extractActions, type ActionEvent } from "./trace";
 import { findTapoVacuums, vacuumItems, type HistoryRun, type VacuumData } from "./vacuum";
 import { cardStyles } from "./styles";
 import { hasTarget, resolveTargetEntities } from "./targets";
@@ -58,6 +59,8 @@ export class WhatHappenedCard extends LitElement {
   private _vacKey?: string;
   private _vacUnsubs: Array<() => void> = [];
   private _vacToken = 0;
+  private _traces?: TraceCache;
+  private _traceBudget = 0;
   private _registryRefs: unknown[] = [];
 
   public setConfig(config: WhatHappenedConfig): void {
@@ -78,6 +81,7 @@ export class WhatHappenedCard extends LitElement {
   set hass(hass: HomeAssistant) {
     const first = !this._hass;
     this._hass = hass;
+    this._traces?.setHass(hass);
     const registries = [hass.entities, hass.devices, hass.areas];
     const registriesChanged = registries.some((r, i) => r !== this._registryRefs[i]);
     this._registryRefs = registries;
@@ -247,7 +251,7 @@ export class WhatHappenedCard extends LitElement {
         // Filter before buffering so the size cap never evicts entries that would match.
         const cfg = this._config;
         for (const event of events) {
-          if (cfg && !passesFilters(event, cfg, this._allowed)) continue;
+          if (cfg && !passesFilters(event, cfg, this._allowed, this._hass)) continue;
           this._entries.set(entryKey(event), event);
         }
         if (this._entries.size > MAX_BUFFER) this._trimBuffer();
@@ -281,15 +285,31 @@ export class WhatHappenedCard extends LitElement {
   private _recompute(): void {
     if (!this._hass || !this._config) return;
     this._now = Date.now();
-    this._groups = buildTimeline(
+    this._traceBudget = 40;
+    const groups = buildTimeline(
       this._hass,
       this._entries.values(),
       this._config,
       this._now,
       this._allowed,
       this._extraItems(),
+      this._resolveRun,
     );
+    this._groups = groups;
   }
+
+  /** What a run said or sent, read from its trace; undefined until the trace has loaded. */
+  private _resolveRun = (run: TimelineItem): ActionEvent[] | undefined => {
+    const hass = this._hass;
+    if (!hass || !run.entityId) return undefined;
+    const cache = (this._traces ??= new TraceCache(hass));
+    const trace = cache.lookup(run.entityId, run.when, 15_000);
+    if (trace) return extractActions(trace);
+    if (this._traceBudget-- > 0) {
+      cache.ensure(run.entityId, run.when, 15_000)?.then(() => this._scheduleRecompute());
+    }
+    return undefined;
+  };
 
   private _extraItems() {
     const hass = this._hass;
