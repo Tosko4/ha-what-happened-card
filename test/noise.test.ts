@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { friendlyTrigger } from "../src/context";
 import { buildTimeline } from "../src/timeline";
+import type { ActionEvent } from "../src/trace";
 import type { LogbookEntry, WhatHappenedConfig } from "../src/types";
 import { NOW, entry, makeHass, state } from "./helpers";
 
@@ -67,7 +68,7 @@ describe("chatty entities", () => {
         source: "time pattern",
       }),
     );
-    const result = items(runs);
+    const result = items(runs, { automation_runs: "all" });
     expect(result).toHaveLength(1);
     expect(result[0].verb).toBe("was triggered 12 times");
     expect(result[0].cause?.trigger).toBe("time pattern");
@@ -164,47 +165,90 @@ describe("meaningful activity (default)", () => {
   describe("automation runs", () => {
     const run = entry({
       ago: 40,
-      entity_id: "automation.ai",
+      entity_id: "automation.visitor",
       domain: "automation",
-      name: "AI summaries",
-      message: "triggered by time pattern",
-      source: "time pattern",
+      name: "Announce visitor",
+      message: "triggered by state of binary_sensor.door",
+      source: "state of binary_sensor.door",
     });
-    const effect = entry({
-      ago: 39,
-      entity_id: "light.kitchen",
-      name: "Kitchen light",
+    const door = entry({
+      ago: 41,
+      entity_id: "binary_sensor.door",
+      name: "Front door",
       state: "on",
-      context_event_type: "automation_triggered",
-      context_entity_id: "automation.ai",
-      context_source: "time pattern",
+    });
+    const say: ActionEvent = {
+      kind: "say",
+      text: "Someone is at the front door",
+      speakers: ["media_player.kitchen"],
+      service: "tts.speak",
+    };
+    const speakerHass = makeHass([
+      state("media_player.kitchen", "idle", { friendly_name: "Kitchen speaker" }),
+      state("binary_sensor.door", "on", { friendly_name: "Front door", device_class: "door" }),
+      state("automation.visitor", "on", { friendly_name: "Announce visitor" }),
+    ]);
+    const build = (
+      e: LogbookEntry[],
+      c: Partial<WhatHappenedConfig> = {},
+      actions?: ActionEvent[],
+    ) =>
+      buildTimeline(speakerHass, e, cfg(c), NOW, undefined, undefined, () => actions).flatMap(
+        (g) => g.items,
+      );
+
+    it("shows what a run said as its own entry, with who and why", () => {
+      const [item] = build([run, door], {}, [say]);
+      expect(item.name).toBe("Kitchen speaker");
+      expect(item.verb).toBe("said “Someone is at the front door”");
+      expect(item.cause?.actor?.name).toBe("Announce visitor");
+      expect(item.cause?.trigger).toBe("Front door was opened");
+      expect(build([run, door], {}, [say])).toHaveLength(1); // run and sensor are folded in
     });
 
-    it("shows a run that left no visible trace (spoken announcement, notification)", () => {
-      const result = meaningful([run]);
-      expect(result).toHaveLength(1);
-      expect(result[0].name).toBe("AI summaries");
-      expect(result[0].cause?.trigger).toBe("time pattern");
+    it("shows a sent notification", () => {
+      const [item] = build([run], {}, [
+        {
+          kind: "notify",
+          text: "Visitor at the door",
+          title: "Door",
+          speakers: [],
+          service: "notify.x",
+        },
+      ]);
+      expect(item.name).toBe("Notification");
+      expect(item.verb).toBe("sent “Door: Visitor at the door”");
     });
 
-    it("folds a run into the change it made", () => {
-      const result = meaningful([run, effect]);
-      expect(result).toHaveLength(1);
-      expect(result[0].name).toBe("Kitchen light");
-      expect(result[0].cause?.actor?.name).toBe("AI summaries");
+    it("hides a run that said and sent nothing, and one whose trace is not loaded yet", () => {
+      expect(build([run], {}, [])).toHaveLength(0);
+      expect(build([run], {}, undefined)).toHaveLength(0);
     });
 
-    it("can show every run, or none", () => {
-      expect(meaningful([run, effect], { automation_runs: "all" })).toHaveLength(2);
-      expect(meaningful([run], { automation_runs: "hidden" })).toHaveLength(0);
+    it("does not also list the speaker starting to play", () => {
+      const playing = entry({
+        ago: 39,
+        entity_id: "media_player.kitchen",
+        name: "Kitchen speaker",
+        state: "playing",
+        context_event_type: "automation_triggered",
+        context_entity_id: "automation.visitor",
+      });
+      expect(build([run, playing], {}, [say])).toHaveLength(1);
     });
 
-    it("still summarizes a run that fires all the time", () => {
+    it("can show every run, or nothing at all", () => {
+      expect(build([run], { automation_runs: "all" }, [])).toHaveLength(1);
+      expect(build([run], { automation_runs: "none" }, [say])).toHaveLength(0);
+      expect(build([run], { show_actions: false }, [say])).toHaveLength(0);
+    });
+
+    it("still summarizes a run that fires all the time when every run is shown", () => {
       const runs = Array.from({ length: 14 }, (_, i) => ({
         ...run,
         when: NOW / 1000 - 900 * (i + 1),
       }));
-      const result = meaningful(runs);
+      const result = build(runs, { automation_runs: "all" }, []);
       expect(result).toHaveLength(1);
       expect(result[0].verb).toBe("was triggered 14 times");
     });

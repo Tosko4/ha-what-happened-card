@@ -87,7 +87,7 @@ export interface TargetConfig {
 
 export type TimeDisplay = "relative" | "absolute" | "both";
 export type TapAction = "more-info" | "none";
-export type AutomationRuns = "unexplained" | "all" | "hidden";
+export type AutomationRuns = "actions" | "all" | "none";
 export type Activity = "meaningful" | "everything";
 export type ChattyMode = "summarize" | "hide" | "show";
 export type Order = "newest_first" | "oldest_first";
@@ -162,8 +162,6 @@ export interface TimelineItem {
   accent: string;
   /** Extra facts shown under the sentence, e.g. "42 min", "38 m²". */
   details?: string[];
-  /** What an automation said or sent, one per line (from its run trace). */
-  lines?: string[];
   /** Full sentence for entries that are not "subject + verb" (planner log). */
   text?: string;
   /** Built from an integration (not the logbook): never merged with neighbours. */

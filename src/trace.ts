@@ -23,63 +23,62 @@ export interface TraceData {
   trace?: Record<string, Array<{ result?: { params?: ServiceParams } }>>;
 }
 
-const MAX_LINES = 4;
 const MAX_TEXT = 200;
+
+/** Something an automation did that leaves no state change of its own. */
+export interface ActionEvent {
+  kind: "say" | "notify";
+  text: string;
+  title?: string;
+  /** For "say": the speakers it was said on. */
+  speakers: string[];
+  service: string;
+}
 
 function ids(value: unknown): string[] {
   if (typeof value === "string") return value.split(",").map((v) => v.trim());
   return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
 }
 
-function nameList(hass: HomeAssistant, entityIds: string[]): string {
-  const names = entityIds.map((id) => hass.states[id]?.attributes.friendly_name ?? id);
-  return names.length > 3
-    ? `${names.slice(0, 3).join(", ")} and ${names.length - 3} more`
-    : names.join(", ");
-}
-
 function text(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? truncate(value.trim(), MAX_TEXT) : undefined;
 }
 
-/** Spoken text, notifications and (for runs with no other visible result) plain service calls. */
-export function describeActions(
-  hass: HomeAssistant,
-  trace: TraceData,
-  includeGeneric: boolean,
-): string[] {
-  const lines: string[] = [];
-  const add = (line: string) => {
-    if (!lines.includes(line)) lines.push(line);
-  };
-
+/**
+ * The spoken text and notifications of a run. Anything else an automation does (switching a
+ * light, setting a helper) shows up as its own change in the logbook, or is not worth a line.
+ */
+export function extractActions(trace: TraceData): ActionEvent[] {
+  const actions: ActionEvent[] = [];
   for (const [path, steps] of Object.entries(trace.trace ?? {})) {
     if (!path.startsWith("action/") && !path.startsWith("sequence/")) continue;
     for (const step of steps) {
       const params = step.result?.params;
       if (!params?.domain || !params.service) continue;
       const data = params.service_data ?? {};
-      const targets = [...ids(data.entity_id), ...ids(params.target?.entity_id)];
-      const { domain, service } = params;
+      const message = text(data.message);
+      if (!message) continue;
+      const service = `${params.domain}.${params.service}`;
 
-      if (domain === "tts") {
-        const message = text(data.message);
+      if (params.domain === "tts") {
         const speakers = [
           ...ids(data.media_player_entity_id),
-          ...targets.filter((t) => t.startsWith("media_player.")),
-        ];
-        if (message)
-          add(`Said “${message}”${speakers.length ? ` on ${nameList(hass, speakers)}` : ""}`);
-      } else if (domain === "notify" || domain === "persistent_notification") {
-        const message = text(data.message);
-        const title = text(data.title);
-        if (message) add(`Sent notification “${title ? `${title}: ` : ""}${message}”`);
-      } else if (includeGeneric) {
-        add(`Called ${domain}.${service}${targets.length ? ` on ${nameList(hass, targets)}` : ""}`);
+          ...ids(data.entity_id),
+          ...ids(params.target?.entity_id),
+        ].filter((id) => id.startsWith("media_player."));
+        actions.push({ kind: "say", text: message, speakers: [...new Set(speakers)], service });
+      } else if (params.domain === "notify" || params.domain === "persistent_notification") {
+        actions.push({
+          kind: "notify",
+          text: message,
+          title: text(data.title),
+          speakers: [],
+          service,
+        });
       }
     }
   }
-  return lines.slice(0, MAX_LINES);
+  return actions;
 }
 
 /** The run that started shortly before `whenMs` (nearest start wins). */

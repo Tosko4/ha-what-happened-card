@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   TraceCache,
-  describeActions,
+  extractActions,
   pickRun,
   type TraceData,
   type TraceRunInfo,
@@ -54,48 +54,55 @@ const trace: TraceData = {
   },
 };
 
-describe("describeActions", () => {
-  it("reports spoken text and notifications", () => {
-    expect(describeActions(hass, trace, false)).toEqual([
-      "Said “Someone is at the front door” on Kitchen speaker",
-      "Sent notification “Door: Visitor at the door”",
+describe("extractActions", () => {
+  it("reports what was said and which speakers, and notifications", () => {
+    expect(extractActions(trace)).toEqual([
+      {
+        kind: "say",
+        text: "Someone is at the front door",
+        speakers: ["media_player.kitchen"],
+        service: "tts.speak",
+      },
+      {
+        kind: "notify",
+        text: "Visitor at the door",
+        title: "Door",
+        speakers: [],
+        service: "notify.mobile_app_phone",
+      },
     ]);
   });
 
-  it("adds plain service calls for runs with no other visible result", () => {
-    expect(describeActions(hass, trace, true)).toContain("Called light.turn_on on Porch light");
+  it("ignores plain service calls such as switching a light", () => {
+    expect(extractActions(trace).map((a) => a.service)).not.toContain("light.turn_on");
   });
 
-  it("handles legacy tts.*_say with entity_id speakers and a long text", () => {
-    const long = "x".repeat(400);
-    const lines = describeActions(
-      hass,
-      {
-        trace: {
-          "action/0": [
-            {
-              result: {
-                params: {
-                  domain: "tts",
-                  service: "google_say",
-                  service_data: {
-                    entity_id: ["media_player.kitchen", "media_player.hall"],
-                    message: long,
-                  },
+  it("handles legacy tts.*_say with entity_id speakers and shortens a long text", () => {
+    const [say] = extractActions({
+      trace: {
+        "action/0": [
+          {
+            result: {
+              params: {
+                domain: "tts",
+                service: "google_say",
+                service_data: {
+                  entity_id: ["media_player.kitchen", "media_player.hall"],
+                  message: "x".repeat(400),
                 },
               },
             },
-          ],
-        },
+          },
+        ],
       },
-      false,
-    );
-    expect(lines[0]).toMatch(/^Said “x+…” on Kitchen speaker, Hall speaker$/);
-    expect(lines[0].length).toBeLessThan(260);
+    });
+    expect(say.speakers).toEqual(["media_player.kitchen", "media_player.hall"]);
+    expect(say.text).toMatch(/^x+…$/);
+    expect(say.text.length).toBeLessThan(210);
   });
 
   it("copes with empty traces", () => {
-    expect(describeActions(hass, {}, true)).toEqual([]);
+    expect(extractActions({})).toEqual([]);
   });
 });
 

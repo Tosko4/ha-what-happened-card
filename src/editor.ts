@@ -49,7 +49,7 @@ const LABELS: Record<string, string> = {
   vacuum_details: "TapoVac-ADV: show cleaning runs with rooms, duration and reason",
   activity: "What to show",
   automation_runs: "Automation and script runs",
-  show_actions: "Show what automations said or sent (needs admin)",
+  show_actions: "Show what automations said or sent (needs an admin user)",
   chatty: "Very frequent entities",
   show_diagnostic: "Include diagnostic, configuration and hidden entities",
   hide_unavailable: "Hide unavailable / unknown states",
@@ -63,7 +63,7 @@ const HELPERS: Record<string, string> = {
   include_domains: "Leave empty for all domains. Pick from the list or type your own.",
   activity: "Recommended hides clocks, text and number sensors and update entities.",
   automation_runs:
-    "A run that switched something is folded into that change. A run with no visible result, such as a spoken announcement, is shown on its own.",
+    "Most runs are plumbing. By default only what a run said on a speaker or sent as a notification is shown, as its own entry.",
   chatty:
     "Entities with at least 10 entries at a pace of one per hour or faster, such as a clock sensor or an automation that runs every 15 minutes.",
   max_height:
@@ -183,9 +183,9 @@ const RULES_SCHEMA: Schema = [
       select: {
         mode: "dropdown",
         options: [
-          { value: "unexplained", label: "When nothing else shows what they did (recommended)" },
-          { value: "all", label: "Always" },
-          { value: "hidden", label: "Never" },
+          { value: "actions", label: "Only what they said or sent (recommended)" },
+          { value: "all", label: "Every run" },
+          { value: "none", label: "Never" },
         ],
       },
     },

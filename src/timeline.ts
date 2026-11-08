@@ -1,5 +1,7 @@
-import { resolveCause, runTrigger } from "./context";
+import { firstEntityId, resolveCause, runTrigger } from "./context";
 import { ACTOR_ICONS, fallbackIcon, stateColor } from "./appearance";
+import { convertRuns } from "./runs";
+import type { ActionEvent } from "./trace";
 import { REPLACED_STATES, REPLACE_WINDOW_MS } from "./vacuum";
 import { isMeaningful } from "./relevance";
 import { groupBursts, summarizeChatty } from "./noise";
@@ -27,7 +29,7 @@ export const DEFAULTS = {
   vacuum_details: true,
   hide_unavailable: true,
   activity: "meaningful",
-  automation_runs: "unexplained",
+  automation_runs: "actions",
   show_actions: true,
   chatty: "summarize",
   show_diagnostic: false,
@@ -116,7 +118,10 @@ function toItem(
       verb = "was triggered";
       tone = "active";
       const trigger = runTrigger(hass, entry);
-      if (trigger) cause = { ...cause, trigger };
+      if (trigger) {
+        const raw = entry.source ?? message.replace(/^triggered by /, "");
+        cause = { ...cause, trigger, triggerEntityId: firstEntityId(raw) };
+      }
     } else {
       verb = message;
       tone = /(error|fail)/i.test(message) ? "alert" : "neutral";
@@ -222,6 +227,8 @@ export function buildTimeline(
   allowed?: Set<string>,
   /** Integration-built items, and the vacuums whose plain logbook state changes they replace. */
   extra?: { items: TimelineItem[]; vacuums: Set<string> },
+  /** What a run said or sent (from its trace); undefined while that is still loading. */
+  resolveRun?: (run: TimelineItem) => ActionEvent[] | undefined,
 ): DayGroup[] {
   const since = now - effectiveHours(config) * 3_600_000;
   const maxEntries = effectiveMaxEntries(config);
@@ -243,13 +250,16 @@ export function buildTimeline(
     .filter((e) => !isStandIn(e, standIns))
     .sort((a, b) => b.when - a.when);
 
-  const chained = mergeChains(
-    [...sorted.map((entry) => toItem(hass, entry, config)), ...richItems].sort(
-      (a, b) => b.when - a.when,
-    ),
-    // With automation_runs: all, runs stay visible next to what they did.
-    (config.automation_runs ?? DEFAULTS.automation_runs) !== "all",
-  );
+  const runs = config.automation_runs ?? DEFAULTS.automation_runs;
+  const converted = convertRuns(
+    hass,
+    [...sorted.map((entry) => toItem(hass, entry, config)), ...richItems],
+    runs,
+    config.state_color ?? DEFAULTS.state_color,
+    config.show_actions === false ? undefined : resolveRun,
+  ).sort((a, b) => b.when - a.when);
+  // With automation_runs: all, runs stay visible next to what they did.
+  const chained = mergeChains(converted, runs !== "all");
   const merged = groupBursts(summarizeChatty(chained, config.chatty ?? DEFAULTS.chatty));
 
   const items: TimelineItem[] = [];
@@ -299,6 +309,5 @@ export function plainSentence(item: TimelineItem): string {
   if (cause?.actor) text += ` by ${cause.actor.name}`;
   if (cause?.trigger) text += `, triggered by ${cause.trigger}`;
   if (item.details?.length) text += ` (${item.details.join(", ")})`;
-  if (item.lines?.length) text += `. ${item.lines.join(". ")}`;
   return text;
 }

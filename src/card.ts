@@ -4,7 +4,7 @@ import { classMap } from "lit/directives/class-map.js";
 import { styleMap } from "lit/directives/style-map.js";
 import { formatDateTime, formatRelative, formatTime } from "./format";
 import { subscribeLogbook } from "./logbook";
-import { TraceCache, describeActions } from "./trace";
+import { TraceCache, extractActions, type ActionEvent } from "./trace";
 import { findTapoVacuums, vacuumItems, type HistoryRun, type VacuumData } from "./vacuum";
 import { cardStyles } from "./styles";
 import { hasTarget, resolveTargetEntities } from "./targets";
@@ -60,6 +60,7 @@ export class WhatHappenedCard extends LitElement {
   private _vacUnsubs: Array<() => void> = [];
   private _vacToken = 0;
   private _traces?: TraceCache;
+  private _traceBudget = 0;
   private _registryRefs: unknown[] = [];
 
   public setConfig(config: WhatHappenedConfig): void {
@@ -284,6 +285,7 @@ export class WhatHappenedCard extends LitElement {
   private _recompute(): void {
     if (!this._hass || !this._config) return;
     this._now = Date.now();
+    this._traceBudget = 40;
     const groups = buildTimeline(
       this._hass,
       this._entries.values(),
@@ -291,40 +293,23 @@ export class WhatHappenedCard extends LitElement {
       this._now,
       this._allowed,
       this._extraItems(),
+      this._resolveRun,
     );
-    this._applyActions(groups);
     this._groups = groups;
   }
 
-  /** Add what automations said or sent (spoken text, notifications) from their run traces. */
-  private _applyActions(groups: DayGroup[]): void {
+  /** What a run said or sent, read from its trace; undefined until the trace has loaded. */
+  private _resolveRun = (run: TimelineItem): ActionEvent[] | undefined => {
     const hass = this._hass;
-    if (!hass || !this._config || this._config.show_actions === false) return;
+    if (!hass || !run.entityId) return undefined;
     const cache = (this._traces ??= new TraceCache(hass));
-    let budget = 40;
-    for (const group of groups) {
-      for (const item of group.items) {
-        if (item.rich) continue;
-        const actor = item.cause?.actor;
-        const byAutomation =
-          actor?.entityId && (actor.kind === "automation" || actor.kind === "script");
-        const target =
-          item.isRun && item.entityId
-            ? { id: item.entityId, generic: true, before: 15_000 }
-            : byAutomation
-              ? { id: actor.entityId!, generic: false, before: 600_000 }
-              : undefined;
-        if (!target) continue;
-        const trace = cache.lookup(target.id, item.when, target.before);
-        if (trace) {
-          const lines = describeActions(hass, trace, target.generic);
-          if (lines.length) item.lines = lines;
-        } else if (budget-- > 0) {
-          cache.ensure(target.id, item.when, target.before)?.then(() => this._scheduleRecompute());
-        }
-      }
+    const trace = cache.lookup(run.entityId, run.when, 15_000);
+    if (trace) return extractActions(trace);
+    if (this._traceBudget-- > 0) {
+      cache.ensure(run.entityId, run.when, 15_000)?.then(() => this._scheduleRecompute());
     }
-  }
+    return undefined;
+  };
 
   private _extraItems() {
     const hass = this._hass;
@@ -482,7 +467,6 @@ export class WhatHappenedCard extends LitElement {
                 ? html`<div class="secondary">${item.details.join(" · ")}</div>`
                 : nothing
             }
-            ${item.lines?.map((line) => html`<div class="secondary">${line}</div>`)}
             ${showCause ? this._renderCause(item, avatars) : nothing}
           </div>
           ${this._renderTime(item, config)}
