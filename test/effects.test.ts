@@ -456,3 +456,66 @@ describe("review findings", () => {
     ]);
   });
 });
+
+describe("a script that a person ran", () => {
+  const findHass = makeHass([
+    ...Object.values(hass.states),
+    state("script.find_phone", "off", { friendly_name: "FIND Phone" }),
+  ]);
+  const byJan = {
+    context_user_id: "u1",
+    context_event_type: "call_service",
+    context_domain: "script",
+    context_service: "turn_on",
+  };
+  const log: LogbookEntry[] = [
+    entry({ ago: 100, entity_id: "script.find_phone", name: "FIND Phone", state: "on", ...byJan }),
+    entry({
+      ago: 100,
+      entity_id: "script.find_phone",
+      domain: "script",
+      name: "FIND Phone",
+      message: "started",
+      ...byJan,
+    }),
+  ];
+  const notify = (text: string, title?: string): ActionEvent => ({
+    kind: "notify",
+    text,
+    title,
+    speakers: [],
+    service: "notify.mobile_app_phone",
+  });
+  const run = (actions: ActionEvent[], e = log) =>
+    buildTimeline(findHass, e, cfg(), NOW, undefined, undefined, () => actions).flatMap(
+      (g) => g.items,
+    );
+
+  it("is one entry: the script ran, by the person, with its notifications under it", () => {
+    const result = run([
+      notify("Vrrrrr! Niesom macka!", "Tu som!"),
+      notify("command_ringer_mode"),
+      notify("command_volume_level"),
+      notify("command_volume_level"),
+    ]);
+    expect(result).toHaveLength(1);
+    const [head] = result;
+    expect(head.name).toBe("FIND Phone");
+    expect(head.verb).toBe("ran");
+    expect(head.cause?.actor?.name).toBe("Ján Dubovský");
+    expect(head.effects!.map((e) => `${e.name} ${e.verb}${e.count ? ` ×${e.count}` : ""}`)).toEqual(
+      [
+        "Notification sent “Tu som!: Vrrrrr! Niesom macka!”",
+        "Notification sent “command_ringer_mode”",
+        "Notification sent “command_volume_level” ×2",
+      ],
+    );
+  });
+
+  it("is also one entry when it sent only one thing", () => {
+    const result = run([notify("command_ringer_mode")]);
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe("FIND Phone");
+    expect(result[0].effects).toHaveLength(1);
+  });
+});

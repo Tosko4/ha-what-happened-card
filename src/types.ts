@@ -152,6 +152,8 @@ export interface Cause {
   trigger?: string;
   /** Entity whose state change started the automation, if it could be identified. */
   triggerEntityId?: string;
+  /** Who set it going, when the actor is the script or automation that was started by a person. */
+  by?: Actor;
   /** The entry of that triggering entity itself (e.g. the button press), folded into this one. */
   source?: TimelineItem;
 }
@@ -159,6 +161,8 @@ export interface Cause {
 /** One thing that an action caused, listed under the entry that started it. */
 export interface EffectLine {
   key: string;
+  /** Identical lines in a row are shown once with a count. */
+  count?: number;
   domain: string;
   name: string;
   verb: string;
