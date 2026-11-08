@@ -523,3 +523,57 @@ describe("also show", () => {
     ]);
   });
 });
+
+describe("also show labels", () => {
+  const h = makeHass(
+    [
+      state("input_boolean.watched", "on", { friendly_name: "Watched helper" }),
+      state("button.on_device", "unknown", { friendly_name: "Button on labelled device" }),
+      state("input_boolean.plain", "on", { friendly_name: "Plain helper" }),
+    ],
+    {
+      entities: {
+        "input_boolean.watched": { entity_id: "input_boolean.watched", labels: ["watch"] },
+        "button.on_device": { entity_id: "button.on_device", device_id: "dev1" },
+        "input_boolean.plain": { entity_id: "input_boolean.plain" },
+      },
+      devices: { dev1: { id: "dev1", labels: ["watch"] } },
+    },
+  );
+  const shown = (c: Partial<WhatHappenedConfig> = {}) =>
+    buildTimeline(
+      h,
+      [
+        entry({ ago: 30, entity_id: "input_boolean.watched", name: "Watched helper", state: "on" }),
+        entry({
+          ago: 40,
+          entity_id: "button.on_device",
+          name: "Button on labelled device",
+          state: "2026-11-08",
+        }),
+        entry({ ago: 50, entity_id: "input_boolean.plain", name: "Plain helper", state: "on" }),
+      ],
+      cfg(c),
+      NOW,
+    )
+      .flatMap((g) => g.items)
+      .map((i) => i.name);
+
+  it("is hidden by default", () => {
+    expect(shown()).toEqual([]);
+  });
+
+  it("shows everything carrying the label, entities and devices alike, and nothing else", () => {
+    expect(shown({ also_show_labels: ["watch"] })).toEqual([
+      "Watched helper",
+      "Button on labelled device",
+    ]);
+    expect(shown({ also_show_labels: ["other"] })).toEqual([]);
+  });
+
+  it("combines with entities listed by name", () => {
+    expect(
+      shown({ also_show_labels: ["watch"], also_show_entities: ["input_boolean.plain"] }),
+    ).toHaveLength(3);
+  });
+});

@@ -21,7 +21,7 @@ export function foldTrackers(
   config: WhatHappenedConfig,
 ): TimelineItem[] {
   if (!smartFilteringOn(config)) return items;
-  const picked = pickedEntities(config);
+  const picked = pickedEntities(config, hass);
 
   for (const person of items) {
     if (person.domain !== "person" || !person.entityId) continue;
