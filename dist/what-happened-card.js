@@ -1586,10 +1586,11 @@ let $ = class extends T {
     xt(
       t,
       (l) => {
-        if (o === this._subToken) {
-          for (const a of l) this._entries.set(He(a), a);
-          this._entries.size > $e && this._trimBuffer(), this._loading = !1, this._scheduleRecompute();
-        }
+        if (o !== this._subToken) return;
+        const a = this._config;
+        for (const c of l)
+          a && !passesFilters(c, a, this._allowed) || this._entries.set(He(c), c);
+        this._entries.size > $e && this._trimBuffer(), this._loading = !1, this._scheduleRecompute();
       },
       s,
       i ? [...i] : void 0

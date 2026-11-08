@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildTimeline, plainSentence } from "../src/timeline";
+import { buildTimeline, passesFilters, plainSentence } from "../src/timeline";
 import type { WhatHappenedConfig } from "../src/types";
 import { NOW, entry, makeHass, state } from "./helpers";
 
@@ -135,5 +135,17 @@ describe("buildTimeline", () => {
         ),
       ),
     ).toHaveLength(0);
+  });
+});
+
+describe("passesFilters", () => {
+  it("applies the same rules used when buffering live events", () => {
+    const light = entry({ entity_id: "light.kitchen", state: "on" });
+    expect(passesFilters(light, cfg(), undefined)).toBe(true);
+    expect(passesFilters(light, cfg({ include_domains: ["person"] }), undefined)).toBe(false);
+    expect(passesFilters(light, cfg({ exclude_entities: ["light.kitchen"] }), undefined)).toBe(
+      false,
+    );
+    expect(passesFilters(light, cfg(), new Set(["light.other"]))).toBe(false);
   });
 });

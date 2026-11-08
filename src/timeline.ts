@@ -54,7 +54,8 @@ function domainOf(entry: LogbookEntry): string {
   return entry.domain ?? entry.entity_id?.split(".")[0] ?? "homeassistant";
 }
 
-function passesFilters(
+/** Config filters shared by the live buffer (ingest) and the timeline builder. */
+export function passesFilters(
   entry: LogbookEntry,
   config: WhatHappenedConfig,
   allowed: Set<string> | undefined,
