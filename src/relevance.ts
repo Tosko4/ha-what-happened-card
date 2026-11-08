@@ -81,6 +81,11 @@ const MEANINGFUL_BINARY_CLASSES = new Set([
 /** Domains that keep their meaning right after a restart (a tracker is folded into its person). */
 export const RESTART_EXEMPT_DOMAINS = new Set(["person", "device_tracker", "homeassistant"]);
 
+/** Entities the user asked for by name: they bypass every smart filter. */
+export function pickedEntities(config: WhatHappenedConfig): Set<string> {
+  return new Set([config.target?.entity_id ?? [], config.also_show_entities ?? []].flat());
+}
+
 export function isRunEntry(entry: LogbookEntry): boolean {
   const domain = entry.domain ?? entry.entity_id?.split(".")[0];
   return (
@@ -107,8 +112,8 @@ export function isMeaningful(
   hass: HomeAssistant | undefined,
 ): boolean {
   const domain = entry.domain ?? entry.entity_id?.split(".")[0] ?? "homeassistant";
-  const picked = [config.target?.entity_id ?? []].flat();
-  if (entry.entity_id && picked.includes(entry.entity_id)) return true;
+  if (entry.entity_id && pickedEntities(config).has(entry.entity_id)) return true;
+  if (config.also_show_domains?.includes(domain)) return true;
   if (config.include_domains?.length) return true; // the user chose domains explicitly
 
   if (isRunEntry(entry)) return true; // decided later, once the run's actions are known

@@ -431,3 +431,95 @@ describe("people and their devices", () => {
     expect(shown(both, { include_domains: ["person", "device_tracker"] })).toHaveLength(2);
   });
 });
+
+describe("also show", () => {
+  const h = makeHass(
+    [
+      state("input_boolean.recently", "on", { friendly_name: "Automation recently" }),
+      state("button.repairs", "unknown", { friendly_name: "Repairs" }),
+      state("sensor.battery", "50", { friendly_name: "Battery" }),
+      state("switch.led", "on", { friendly_name: "Status LED" }),
+      state("light.kitchen", "on", { friendly_name: "Kitchen light" }),
+      state("automation.code", "on", { friendly_name: "Hlásenie kódu" }),
+    ],
+    { entities: { "switch.led": { entity_id: "switch.led", entity_category: "diagnostic" } } },
+  );
+  const shown = (e: LogbookEntry[], c: Partial<WhatHappenedConfig> = {}) =>
+    buildTimeline(h, e, cfg(c), NOW).flatMap((g) => g.items);
+  const byAutomation = {
+    context_event_type: "automation_triggered",
+    context_entity_id: "automation.x",
+  };
+
+  it("adds entities that the default view would hide", () => {
+    const helper = entry({
+      ago: 30,
+      entity_id: "input_boolean.recently",
+      name: "Recently",
+      state: "on",
+      ...byAutomation,
+    });
+    const press = entry({
+      ago: 40,
+      entity_id: "button.repairs",
+      name: "Repairs",
+      state: "2026-11-08",
+    });
+    const led = entry({ ago: 50, entity_id: "switch.led", name: "Status LED", state: "on" });
+    expect(shown([helper, press, led])).toHaveLength(0);
+    const also = { also_show_entities: ["input_boolean.recently", "button.repairs", "switch.led"] };
+    expect(shown([helper, press, led], also)).toHaveLength(3);
+    // and it is additive: other things still follow the default view
+    const clock = entry({ ago: 20, entity_id: "sensor.battery", name: "Battery", state: "49" });
+    expect(shown([helper, clock], also).map((i) => i.name)).toEqual(["Recently"]);
+  });
+
+  it("adds whole domains on top of the default view", () => {
+    const sensor = entry({ ago: 20, entity_id: "sensor.battery", name: "Battery", state: "49" });
+    const light = entry({
+      ago: 30,
+      entity_id: "light.kitchen",
+      name: "Kitchen light",
+      state: "off",
+    });
+    expect(shown([sensor, light]).map((i) => i.name)).toEqual(["Kitchen light"]);
+    expect(shown([sensor, light], { also_show_domains: ["sensor"] }).map((i) => i.name)).toEqual([
+      "Battery",
+      "Kitchen light",
+    ]);
+  });
+
+  it("never summarizes or hides an entity that was asked for", () => {
+    const flapping = Array.from({ length: 30 }, (_, i) =>
+      entry({
+        ago: 60 * (i + 1),
+        entity_id: "light.kitchen",
+        name: "Kitchen light",
+        state: i % 2 ? "on" : "off",
+      }),
+    );
+    expect(shown(flapping, { collapse_repeats: false, max_entries: 100 }).length).toBeLessThan(5);
+    expect(
+      shown(flapping, {
+        also_show_entities: ["light.kitchen"],
+        collapse_repeats: false,
+        max_entries: 100,
+      }),
+    ).toHaveLength(30);
+  });
+
+  it("lists the runs of an automation that was asked for", () => {
+    const run = entry({
+      ago: 30,
+      entity_id: "automation.code",
+      domain: "automation",
+      name: "Hlásenie kódu",
+      message: "triggered by time",
+      source: "time",
+    });
+    expect(shown([run])).toHaveLength(0);
+    expect(shown([run], { also_show_entities: ["automation.code"] }).map((i) => i.name)).toEqual([
+      "Hlásenie kódu",
+    ]);
+  });
+});

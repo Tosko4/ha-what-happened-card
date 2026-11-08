@@ -29,11 +29,13 @@ function keyOf(item: TimelineItem): string {
 export function summarizeChatty(
   items: TimelineItem[],
   mode: "summarize" | "hide" | "show",
+  /** Entities the user asked to see: never summarized or hidden. */
+  exempt: ReadonlySet<string> = new Set(),
 ): TimelineItem[] {
   if (mode === "show") return items;
   const groups = new Map<string, TimelineItem[]>();
   for (const item of items) {
-    if (item.rich) continue;
+    if (item.rich || (item.entityId && exempt.has(item.entityId))) continue;
     const key = keyOf(item);
     const list = groups.get(key);
     if (list) list.push(item);
@@ -52,7 +54,7 @@ export function summarizeChatty(
   const emitted = new Set<string>();
   for (const item of items) {
     const key = keyOf(item);
-    if (item.rich || !chatty.has(key)) {
+    if (item.rich || !chatty.has(key) || (item.entityId && exempt.has(item.entityId))) {
       out.push(item);
       continue;
     }

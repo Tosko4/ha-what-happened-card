@@ -3,7 +3,13 @@ import { ACTOR_ICONS, fallbackIcon, stateColor } from "./appearance";
 import { convertRuns } from "./runs";
 import type { ActionEvent } from "./trace";
 import { REPLACED_STATES, REPLACE_WINDOW_MS } from "./vacuum";
-import { RESTART_EXEMPT_DOMAINS, hasKnownCause, isMeaningful, isRunEntry } from "./relevance";
+import {
+  RESTART_EXEMPT_DOMAINS,
+  hasKnownCause,
+  isMeaningful,
+  isRunEntry,
+  pickedEntities,
+} from "./relevance";
 import { groupBursts, hideGroupMembers, summarizeChatty } from "./noise";
 import { foldTrackers, smartFilteringOn } from "./people";
 import { dayKey, formatDayLabel } from "./format";
@@ -77,7 +83,7 @@ export function passesFilters(
   const domain = domainOf(entry);
   if (hass && entry.entity_id && !(config.show_diagnostic ?? DEFAULTS.show_diagnostic)) {
     const reg = hass.entities?.[entry.entity_id];
-    const picked = [config.target?.entity_id ?? []].flat().includes(entry.entity_id);
+    const picked = pickedEntities(config).has(entry.entity_id);
     // Diagnostic, config and hidden entities are noise unless the user asked for them by name.
     if (reg && (reg.entity_category || reg.hidden) && !picked) return false;
   }
@@ -181,7 +187,11 @@ function isStandIn(
  * automation that switched a device, only the device entry is kept. It explains
  * the whole chain, so the automation run and the triggering state change are folded in.
  */
-function mergeChains(items: TimelineItem[], hideExplainedRuns = true): TimelineItem[] {
+function mergeChains(
+  items: TimelineItem[],
+  hideExplainedRuns = true,
+  keepRuns: ReadonlySet<string> = new Set(),
+): TimelineItem[] {
   const hidden = new Set<TimelineItem>();
   for (const effect of items) {
     const actor = effect.cause?.actor;
@@ -191,6 +201,7 @@ function mergeChains(items: TimelineItem[], hideExplainedRuns = true): TimelineI
       if (
         hideExplainedRuns &&
         run.isRun &&
+        !(run.entityId && keepRuns.has(run.entityId)) &&
         run.entityId === actor.entityId &&
         Math.abs(run.when - effect.when) <= CHAIN_WINDOW_MS
       ) {
@@ -221,7 +232,7 @@ function dedupe(
   config: WhatHappenedConfig,
 ): TimelineItem[] {
   if (!smartFilteringOn(config)) return items;
-  return hideGroupMembers(hass, items, new Set([config.target?.entity_id ?? []].flat()));
+  return hideGroupMembers(hass, items, pickedEntities(config));
 }
 
 /**
@@ -254,6 +265,7 @@ export function buildTimeline(
   const restarts = list
     .filter((e) => e.domain === "homeassistant" && e.message === "started")
     .map((e) => e.when);
+  const picked = pickedEntities(config);
   const restartNoise = (e: LogbookEntry): boolean => {
     if ((config.activity ?? DEFAULTS.activity) !== "meaningful") return false;
     if (e.domain === "homeassistant") {
@@ -262,6 +274,7 @@ export function buildTimeline(
     }
     if (
       hasKnownCause(e) ||
+      (e.entity_id && picked.has(e.entity_id)) ||
       RESTART_EXEMPT_DOMAINS.has(e.domain ?? e.entity_id?.split(".")[0] ?? "")
     ) {
       return false;
@@ -287,13 +300,15 @@ export function buildTimeline(
     runs,
     config.state_color ?? DEFAULTS.state_color,
     config.show_actions === false ? undefined : resolveRun,
+    picked,
   ).sort((a, b) => b.when - a.when);
   // With automation_runs: all, runs stay visible next to what they did.
-  const chained = mergeChains(converted, runs !== "all");
+  const chained = mergeChains(converted, runs !== "all", picked);
   const merged = groupBursts(
     summarizeChatty(
       dedupe(hass, foldTrackers(hass, chained, config), config),
       config.chatty ?? DEFAULTS.chatty,
+      picked,
     ),
   );
 
