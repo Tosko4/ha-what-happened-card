@@ -175,12 +175,64 @@ describe("one action, one entry", () => {
     expect(build([...press, ...later])).toHaveLength(2);
   });
 
-  it("keeps an entity the user asked for as a row of its own", () => {
-    const result = build(press, { also_show_entities: ["text.b35"] });
-    // the picked display is a row of its own, not nested under the press
-    expect(result.map((i) => i.name)).toContain('JadivClock 3.5" Broadcast');
-    const head = result.find((i) => i.name === "4 – Prídem onedlho")!;
-    expect(head.effects!.map((e) => e.entityId)).not.toContain("text.b35");
+  it("shows an entity the user asked for as a line of the action that caused it", () => {
+    const plain = build(press, { also_show_entities: [] })[0].effects!;
+    const result = build(press, { also_show_entities: ["text.b35", "text.b43", "text.b24"] });
+    // still one entry: the picked displays are not left behind as rows of their own
+    expect(result).toHaveLength(1);
+    expect(result[0].effects!.length).toBe(plain.length);
+    expect(result[0].effects!.map((e) => e.name).join(" ")).toContain("3 text entities");
+  });
+
+  it("does not list the script's own on/off as an effect", () => {
+    const withScript = [
+      ...press,
+      entry({
+        ago: 98,
+        entity_id: "script.tts",
+        name: "TTS Announce Script",
+        state: "on",
+        ...viaCode,
+      }),
+      entry({
+        ago: 97,
+        entity_id: "script.tts",
+        name: "TTS Announce Script",
+        state: "off",
+        ...viaCode,
+      }),
+    ];
+    const scriptHass = makeHass([
+      ...Object.values(hass.states),
+      state("script.tts", "off", { friendly_name: "TTS Announce Script" }),
+    ]);
+    const result = buildTimeline(
+      scriptHass,
+      withScript,
+      cfg({ also_show_domains: ["text", "input_select", "script"] }),
+      NOW,
+      undefined,
+      undefined,
+      () => say,
+    ).flatMap((g) => g.items);
+    expect(result).toHaveLength(1);
+    expect(result[0].effects!.map((e) => e.name)).not.toContain("TTS Announce Script");
+    // asked for by name: it stays visible, as a line of the group
+    const picked = buildTimeline(
+      scriptHass,
+      withScript,
+      cfg({
+        also_show_domains: ["text", "input_select", "script"],
+        also_show_entities: ["script.tts"],
+      }),
+      NOW,
+      undefined,
+      undefined,
+      () => say,
+    ).flatMap((g) => g.items);
+    expect(picked.flatMap((i) => i.effects ?? []).map((e) => e.name)).toContain(
+      "TTS Announce Script",
+    );
   });
 
   it("is off when the user picks what to see", () => {

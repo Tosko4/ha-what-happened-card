@@ -54,6 +54,15 @@ function viaOf(effects: TimelineItem[]): Actor[] {
   return out;
 }
 
+function isScriptNoise(item: TimelineItem, picked: ReadonlySet<string>): boolean {
+  return (
+    item.domain === "script" &&
+    !item.isRun &&
+    !(item.entityId && picked.has(item.entityId)) &&
+    /^was turned (on|off)$/.test(item.verb)
+  );
+}
+
 function triggerOf(cluster: TimelineItem[]) {
   const withTrigger = cluster.find((c) => c.cause?.trigger);
   return withTrigger
@@ -98,7 +107,7 @@ function splitBySource(clusters: TimelineItem[][]): TimelineItem[][] {
 export function groupEffects(
   hass: HomeAssistant,
   items: TimelineItem[],
-  /** Entities the user asked to see: they stay rows of their own, never nested. */
+  /** Entities the user asked to see. They are never dropped: they show as a line of the group. */
   picked: ReadonlySet<string> = new Set(),
 ): TimelineItem[] {
   // Everything one automation or script did. Effects of one action happen within seconds of
@@ -109,7 +118,7 @@ export function groupEffects(
     const cause = item.cause;
     const actor = cause?.actor;
     if (!actor?.entityId || (actor.kind !== "automation" && actor.kind !== "script")) continue;
-    if (item.effects || (item.entityId && picked.has(item.entityId))) continue;
+    if (item.effects) continue;
     const key = actor.entityId;
     const list = byKey.get(key);
     if (list) list.push(item);
@@ -120,9 +129,7 @@ export function groupEffects(
   const added: TimelineItem[] = [];
   // A script or automation calls input_select.select_option; the log records that change as a
   // bare service call with no trace of who made it.
-  const loose = items.filter(
-    (i) => !i.rich && i.cause?.actor?.kind === "service" && !(i.entityId && picked.has(i.entityId)),
-  );
+  const loose = items.filter((i) => !i.rich && i.cause?.actor?.kind === "service");
 
   for (const [, all] of byKey) {
     // Split into bursts: effects of one press happen within seconds of each other.
@@ -139,7 +146,12 @@ export function groupEffects(
       const source = cluster.find((c) => c.cause?.source)?.cause?.source;
       // One effect of a sensor is better told in one line; one effect of a person's press is
       // told as "pressed by Ján, which caused ...".
-      if (cluster.length < 2 && source?.cause?.actor?.kind !== "user") continue;
+      // "TTS Announce Script was turned on / off" only says that the script ran: the group
+      // already is that run, so it is not a line of its own (unless the user asked for it).
+      const noise = cluster.filter((c) => isScriptNoise(c, picked));
+      const real = cluster.filter((c) => !noise.includes(c));
+      if (real.length < 2 && source?.cause?.actor?.kind !== "user") continue;
+      cluster.splice(0, cluster.length, ...real);
       for (const item of loose) {
         if (
           !removed.has(item) &&
@@ -187,7 +199,7 @@ export function groupEffects(
           accent: stateColor(kind, undefined, "on", "active", true),
         };
       }
-      for (const c of cluster) removed.add(c);
+      for (const c of [...cluster, ...noise]) removed.add(c);
       added.push(head);
     }
   }

@@ -357,7 +357,6 @@ export function buildTimeline(
       config.chatty ?? DEFAULTS.chatty,
       picked,
     ),
-    picked,
   );
   // One action, one entry: what an automation caused moves under the entry that started it.
   const merged = applyColors(

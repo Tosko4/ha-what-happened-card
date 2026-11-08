@@ -111,11 +111,7 @@ function sameCause(a: TimelineItem, b: TimelineItem): boolean {
 }
 
 /** Three or more entities of one domain doing the same thing within seconds become one entry. */
-export function groupBursts(
-  items: TimelineItem[],
-  /** Entities the user asked to see: never folded into a burst. */
-  exempt: ReadonlySet<string> = new Set(),
-): TimelineItem[] {
+export function groupBursts(items: TimelineItem[]): TimelineItem[] {
   interface Cluster {
     members: TimelineItem[];
     oldest: number;
@@ -123,7 +119,7 @@ export function groupBursts(
   const open = new Map<string, Cluster>();
   const clusters: Cluster[] = [];
   for (const item of items) {
-    if (item.rich || !item.entityId || exempt.has(item.entityId)) continue;
+    if (item.rich || !item.entityId) continue;
     const key = `${item.domain}|${item.verb}|${item.tone}`;
     const cluster = open.get(key);
     if (cluster && cluster.oldest - item.when <= BURST_WINDOW_MS) {
