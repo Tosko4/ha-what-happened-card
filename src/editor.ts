@@ -1,0 +1,256 @@
+import { LitElement, css, html, nothing, type TemplateResult } from "lit";
+import { customElement, property, state } from "lit/decorators.js";
+import { DEFAULTS, LIMITS } from "./timeline";
+import type { HomeAssistant, WhatHappenedConfig } from "./types";
+
+type Schema = Array<Record<string, unknown>>;
+
+const COMMON_DOMAINS = [
+  "alarm_control_panel",
+  "automation",
+  "binary_sensor",
+  "button",
+  "climate",
+  "cover",
+  "device_tracker",
+  "fan",
+  "input_boolean",
+  "light",
+  "lock",
+  "media_player",
+  "person",
+  "scene",
+  "script",
+  "sensor",
+  "siren",
+  "sun",
+  "switch",
+  "update",
+  "vacuum",
+].map((value) => ({ value, label: value }));
+
+const LABELS: Record<string, string> = {
+  title: "Title",
+  hours_to_show: "Time window",
+  max_entries: "Maximum number of entries",
+  order: "Order",
+  target: "Only show activity of",
+  exclude_entities: "Hide these entities",
+  include_domains: "Only these domains",
+  exclude_domains: "Hide these domains",
+  show_cause: "Show why it happened (who / what / trigger)",
+  show_avatars: "Show profile pictures",
+  show_day_headers: "Show day headers",
+  colorful: "Colorful accents",
+  compact: "Compact layout",
+  time_display: "Time",
+  tap_action: "Tap action",
+  max_height: "Maximum height",
+  hide_unavailable: "Hide unavailable / unknown states",
+  collapse_repeats: "Merge rapid repeats of the same event",
+};
+
+const HELPERS: Record<string, string> = {
+  hours_to_show: "How far back the timeline reaches, in hours (1 – 720).",
+  max_entries: "Between 1 and 500. Rapid repeats count as one entry when merging is on.",
+  target: "Leave empty to show everything. Choose areas, devices, entities or labels to narrow it.",
+  include_domains: "Leave empty for all domains. Pick from the list or type your own.",
+  max_height:
+    "Pixels. Only needed in Masonry and Panel views. In Sections views, resize the card with its handles.",
+};
+
+const BASE_SCHEMA: Schema = [
+  { name: "title", selector: { text: {} } },
+  {
+    type: "grid",
+    name: "",
+    schema: [
+      {
+        name: "hours_to_show",
+        selector: {
+          number: {
+            min: LIMITS.hours[0],
+            max: LIMITS.hours[1],
+            step: 1,
+            mode: "box",
+            unit_of_measurement: "h",
+          },
+        },
+      },
+      {
+        name: "max_entries",
+        selector: {
+          number: { min: LIMITS.entries[0], max: LIMITS.entries[1], step: 1, mode: "box" },
+        },
+      },
+    ],
+  },
+  {
+    name: "order",
+    selector: {
+      select: {
+        mode: "dropdown",
+        options: [
+          { value: "newest_first", label: "Newest first" },
+          { value: "oldest_first", label: "Oldest first" },
+        ],
+      },
+    },
+  },
+];
+
+const SOURCE_SCHEMA: Schema = [
+  { name: "target", selector: { target: {} } },
+  { name: "exclude_entities", selector: { entity: { multiple: true } } },
+  {
+    name: "include_domains",
+    selector: {
+      select: { multiple: true, custom_value: true, mode: "dropdown", options: COMMON_DOMAINS },
+    },
+  },
+  {
+    name: "exclude_domains",
+    selector: {
+      select: { multiple: true, custom_value: true, mode: "dropdown", options: COMMON_DOMAINS },
+    },
+  },
+];
+
+const DISPLAY_SCHEMA: Schema = [
+  { name: "show_cause", selector: { boolean: {} } },
+  { name: "show_avatars", selector: { boolean: {} } },
+  { name: "show_day_headers", selector: { boolean: {} } },
+  { name: "colorful", selector: { boolean: {} } },
+  { name: "compact", selector: { boolean: {} } },
+  {
+    name: "time_display",
+    selector: {
+      select: {
+        mode: "dropdown",
+        options: [
+          { value: "both", label: "Clock time and relative" },
+          { value: "absolute", label: "Clock time only" },
+          { value: "relative", label: "Relative only" },
+        ],
+      },
+    },
+  },
+  {
+    name: "tap_action",
+    selector: {
+      select: {
+        mode: "dropdown",
+        options: [
+          { value: "more-info", label: "Open more info" },
+          { value: "none", label: "Do nothing" },
+        ],
+      },
+    },
+  },
+  {
+    name: "max_height",
+    selector: { number: { min: 100, max: 2000, step: 10, mode: "box", unit_of_measurement: "px" } },
+  },
+];
+
+const RULES_SCHEMA: Schema = [
+  { name: "hide_unavailable", selector: { boolean: {} } },
+  { name: "collapse_repeats", selector: { boolean: {} } },
+];
+
+const PANELS: Array<{ id: string; header: string; icon: string; schema: Schema }> = [
+  { id: "source", header: "What to include", icon: "mdi:filter-variant", schema: SOURCE_SCHEMA },
+  { id: "display", header: "Appearance", icon: "mdi:palette-outline", schema: DISPLAY_SCHEMA },
+  { id: "rules", header: "Rules", icon: "mdi:tune-variant", schema: RULES_SCHEMA },
+];
+
+@customElement("what-happened-card-editor")
+export class WhatHappenedCardEditor extends LitElement {
+  @property({ attribute: false }) public hass?: HomeAssistant;
+  @state() private _config?: WhatHappenedConfig;
+
+  public setConfig(config: WhatHappenedConfig): void {
+    this._config = config;
+  }
+
+  private _data(): Record<string, unknown> {
+    // Show effective defaults in the form so toggles reflect what the card does.
+    return { ...DEFAULTS, ...this._config } as Record<string, unknown>;
+  }
+
+  private _computeLabel = (schema: { name: string }): string => LABELS[schema.name] ?? schema.name;
+  private _computeHelper = (schema: { name: string }): string | undefined => HELPERS[schema.name];
+
+  private _valueChanged(ev: CustomEvent): void {
+    ev.stopPropagation();
+    if (!this._config) return;
+    const value = ev.detail.value as Record<string, unknown>;
+    const config: Record<string, unknown> = { type: this._config.type };
+    // Keep the YAML tidy: only store values that differ from defaults or were set before.
+    for (const [key, val] of Object.entries(value)) {
+      if (key === "type") continue;
+      const empty =
+        val === undefined ||
+        val === "" ||
+        (Array.isArray(val) && val.length === 0) ||
+        (key === "target" && (!val || Object.keys(val as object).length === 0));
+      if (empty) continue;
+      const isDefault = (DEFAULTS as Record<string, unknown>)[key] === val;
+      if (isDefault && !(key in this._config)) continue;
+      config[key] = val;
+    }
+    this._config = config as unknown as WhatHappenedConfig;
+    this.dispatchEvent(
+      new CustomEvent("config-changed", {
+        detail: { config: this._config },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  private _form(schema: Schema): TemplateResult {
+    return html`<ha-form
+      .hass=${this.hass}
+      .data=${this._data()}
+      .schema=${schema}
+      .computeLabel=${this._computeLabel}
+      .computeHelper=${this._computeHelper}
+      @value-changed=${this._valueChanged}
+    ></ha-form>`;
+  }
+
+  protected render(): TemplateResult | typeof nothing {
+    if (!this.hass || !this._config) return nothing;
+    return html`
+      ${this._form(BASE_SCHEMA)}
+      ${PANELS.map(
+        (panel) => html`
+          <ha-expansion-panel outlined .header=${panel.header} .expanded=${panel.id === "source"}>
+            <ha-icon slot="leading-icon" .icon=${panel.icon}></ha-icon>
+            <div class="panel-content">${this._form(panel.schema)}</div>
+          </ha-expansion-panel>
+        `,
+      )}
+    `;
+  }
+
+  static styles = css`
+    :host {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    ha-expansion-panel {
+      display: block;
+      --expansion-panel-content-padding: 0;
+      border-radius: var(--ha-card-border-radius, 12px);
+    }
+    ha-expansion-panel ha-icon {
+      color: var(--secondary-text-color);
+    }
+    .panel-content {
+      padding: 0 16px 16px;
+    }
+  `;
+}
