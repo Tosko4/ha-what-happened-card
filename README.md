@@ -48,31 +48,33 @@ exclude_domains:
 
 ## Options
 
-| Option             | Default        | Description                                                               |
-| ------------------ | -------------- | ------------------------------------------------------------------------- |
-| `title`            | –              | Card title                                                                |
-| `hours_to_show`    | `24`           | Time window, 1 – 720 hours                                                |
-| `max_entries`      | `50`           | Maximum entries, 1 – 500                                                  |
-| `order`            | `newest_first` | `newest_first` or `oldest_first`                                          |
-| `target`           | all            | `entity_id`, `device_id`, `area_id`, `floor_id`, `label_id` (string/list) |
-| `exclude_entities` | –              | Entities to hide                                                          |
-| `include_domains`  | –              | Only show these domains                                                   |
-| `exclude_domains`  | –              | Hide these domains                                                        |
-| `show_cause`       | `true`         | Show who/what caused it and the trigger                                   |
-| `show_avatars`     | `true`         | Use profile pictures for people                                           |
-| `show_day_headers` | `true`         | Group by day                                                              |
-| `state_color`      | `true`         | Color icons by entity state, using your theme's state colors              |
-| `compact`          | `false`        | Smaller layout                                                            |
-| `time_display`     | `both`         | `both`, `absolute` or `relative`                                          |
-| `tap_action`       | `more-info`    | `more-info` or `none`                                                     |
-| `max_height`       | –              | Pixels; for Masonry/Panel views                                           |
-| `vacuum_details`   | `true`         | Rich entries for TapoVac-ADV vacuums (rooms, duration, reason)            |
-| `activity`         | `meaningful`   | `meaningful` or `everything` (clocks, sensors, updates, …)                |
-| `automation_runs`  | `actions`      | `actions`, `all` or `none` (see below)                                    |
-| `chatty`           | `summarize`    | Very frequent entities: `summarize`, `hide` or `show`                     |
-| `show_diagnostic`  | `false`        | Include diagnostic, configuration and hidden entities                     |
-| `hide_unavailable` | `true`         | Hide `unavailable` / `unknown` states                                     |
-| `collapse_repeats` | `true`         | Merge rapid repeats of the same event (shown as ×N)                       |
+| Option               | Default        | Description                                                                                                    |
+| -------------------- | -------------- | -------------------------------------------------------------------------------------------------------------- |
+| `title`              | –              | Card title                                                                                                     |
+| `hours_to_show`      | `24`           | Time window, 1 – 720 hours                                                                                     |
+| `max_entries`        | `50`           | Maximum entries, 1 – 500                                                                                       |
+| `order`              | `newest_first` | `newest_first` or `oldest_first`                                                                               |
+| `target`             | all            | `entity_id`, `device_id`, `area_id`, `floor_id`, `label_id` (string/list)                                      |
+| `exclude_entities`   | –              | Entities to hide                                                                                               |
+| `also_show_entities` | –              | Always show these entities, even if the default view hides them; pick an automation or script to list its runs |
+| `also_show_domains`  | –              | Add domains to the default view, e.g. `sensor`                                                                 |
+| `include_domains`    | –              | Only show these domains                                                                                        |
+| `exclude_domains`    | –              | Hide these domains                                                                                             |
+| `show_cause`         | `true`         | Show who/what caused it and the trigger                                                                        |
+| `show_avatars`       | `true`         | Use profile pictures for people                                                                                |
+| `show_day_headers`   | `true`         | Group by day                                                                                                   |
+| `state_color`        | `true`         | Color icons by entity state, using your theme's state colors                                                   |
+| `compact`            | `false`        | Smaller layout                                                                                                 |
+| `time_display`       | `both`         | `both`, `absolute` or `relative`                                                                               |
+| `tap_action`         | `more-info`    | `more-info` or `none`                                                                                          |
+| `max_height`         | –              | Pixels; for Masonry/Panel views                                                                                |
+| `vacuum_details`     | `true`         | Rich entries for TapoVac-ADV vacuums (rooms, duration, reason)                                                 |
+| `activity`           | `meaningful`   | `meaningful` or `everything` (clocks, sensors, updates, …)                                                     |
+| `automation_runs`    | `actions`      | `actions`, `all` or `none` (see below)                                                                         |
+| `chatty`             | `summarize`    | Very frequent entities: `summarize`, `hide` or `show`                                                          |
+| `show_diagnostic`    | `false`        | Include diagnostic, configuration and hidden entities                                                          |
+| `hide_unavailable`   | `true`         | Hide `unavailable` / `unknown` states                                                                          |
+| `collapse_repeats`   | `true`         | Merge rapid repeats of the same event (shown as ×N)                                                            |
 
 The "why" comes from the Home Assistant logbook context. Changes made physically on a device have no context, so they show without a cause line.
 
@@ -93,6 +95,7 @@ The card works out what is worth showing, so you do not have to pick entities by
 - the members of a light group (or any group entity) that switched together with it: only the group is shown. A member that changes on its own, while the group stays as it is, is still shown;
 - the same action split over many entities: a script, the speaker, a status LED and a text sensor that all changed because of one automation become a single entry.
 
+- **Show more:** `also_show_entities` adds entities the default view would hide (a helper, a button, a diagnostic entity, an automation whose runs you want to follow); `also_show_domains` adds whole domains such as `sensor`. Both are additive: everything else keeps following the default view, and an entity you list is never summarized or folded away.
 - `activity: everything` shows all of it again. Picking an entity by name in `target`, or domains in `include_domains`, always shows them, and also turns off the grouping of light-group members and of a person with their device.
 - **Automations and scripts:** most runs are plumbing ("AI summaries was triggered", a helper toggled), so they are not listed. When a run switched something, the change is shown with "by <automation>, triggered by …". When a run said something on a speaker or sent a notification, that becomes its own entry, in the same shape as everything else: `Kitchen speaker said “Someone is at the front door”`, `by Announce visitor, triggered by Front door was opened`. `automation_runs: all` lists every run, `none` hides runs and what they said.
 - **How it knows:** the spoken text and notifications are read from the run trace, which Home Assistant only gives to admin users. Without admin rights, or with `show_actions: false`, plain runs simply stay hidden.

@@ -31,16 +31,18 @@ const COMMON_DOMAINS = [
 
 const LABELS: Record<string, string> = {
   title: "Title",
+  show_day_headers: "Show day headings (Today, Yesterday)",
   hours_to_show: "Time window",
   max_entries: "Maximum number of entries",
   order: "Order",
   target: "Only show activity of",
   exclude_entities: "Hide these entities",
+  also_show_entities: "Also show these entities",
+  also_show_domains: "Also show these domains",
   include_domains: "Only these domains",
   exclude_domains: "Hide these domains",
   show_cause: "Show why it happened (who / what / trigger)",
   show_avatars: "Show profile pictures",
-  show_day_headers: "Show day headers",
   state_color: "Show state color",
   compact: "Compact layout",
   time_display: "Time",
@@ -57,6 +59,11 @@ const LABELS: Record<string, string> = {
 };
 
 const HELPERS: Record<string, string> = {
+  title: "Leave empty to show no title.",
+  also_show_entities:
+    "Shown even when the default view would hide them (helpers, buttons, diagnostic entities, restart noise, very frequent entities). Pick an automation or script to always list its runs.",
+  also_show_domains:
+    "Added to the default view, e.g. sensor or update. Pick from the list or type your own.",
   hours_to_show: "How far back the timeline reaches, in hours (1 – 720).",
   max_entries: "Between 1 and 500. Rapid repeats count as one entry when merging is on.",
   target: "Leave empty to show everything. Choose areas, devices, entities or labels to narrow it.",
@@ -72,6 +79,7 @@ const HELPERS: Record<string, string> = {
 
 const BASE_SCHEMA: Schema = [
   { name: "title", selector: { text: {} } },
+  { name: "show_day_headers", selector: { boolean: {} } },
   {
     type: "grid",
     name: "",
@@ -113,6 +121,13 @@ const BASE_SCHEMA: Schema = [
 const SOURCE_SCHEMA: Schema = [
   { name: "target", selector: { target: {} } },
   { name: "exclude_entities", selector: { entity: { multiple: true } } },
+  { name: "also_show_entities", selector: { entity: { multiple: true } } },
+  {
+    name: "also_show_domains",
+    selector: {
+      select: { multiple: true, custom_value: true, mode: "dropdown", options: COMMON_DOMAINS },
+    },
+  },
   {
     name: "include_domains",
     selector: {
@@ -130,7 +145,7 @@ const SOURCE_SCHEMA: Schema = [
 const DISPLAY_SCHEMA: Schema = [
   { name: "show_cause", selector: { boolean: {} } },
   { name: "show_avatars", selector: { boolean: {} } },
-  { name: "show_day_headers", selector: { boolean: {} } },
+
   { name: "state_color", selector: { boolean: {} } },
   { name: "compact", selector: { boolean: {} } },
   {

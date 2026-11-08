@@ -1,3 +1,4 @@
+import { pickedEntities } from "./relevance";
 import type { HomeAssistant, TimelineItem, WhatHappenedConfig } from "./types";
 
 /**
@@ -20,7 +21,7 @@ export function foldTrackers(
   config: WhatHappenedConfig,
 ): TimelineItem[] {
   if (!smartFilteringOn(config)) return items;
-  const picked = new Set([config.target?.entity_id ?? []].flat());
+  const picked = pickedEntities(config);
 
   for (const person of items) {
     if (person.domain !== "person" || !person.entityId) continue;

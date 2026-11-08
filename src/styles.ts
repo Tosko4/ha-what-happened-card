@@ -104,12 +104,22 @@ export const cardStyles = css`
   .node.photo::before {
     display: none;
   }
-  .node ha-state-icon,
-  .node ha-icon {
-    position: relative;
-    display: flex;
+  .glyph {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    line-height: 0;
+  }
+  .glyph ha-state-icon,
+  .glyph ha-icon {
+    display: block;
+    flex: none;
     width: var(--wh-icon);
     height: var(--wh-icon);
+    margin: 0;
+    padding: 0;
+    --mdc-icon-size: var(--wh-icon);
   }
   .photo-img {
     width: 100%;

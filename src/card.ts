@@ -412,13 +412,18 @@ export class WhatHappenedCard extends LitElement {
     const stateObj =
       item.entityId && !item.fixedIcon ? this._hass?.states[item.entityId] : undefined;
     // Entities get their icon from <ha-state-icon>, as the HA design guidelines require.
-    return stateObj
-      ? html`<ha-state-icon
-          .hass=${this._hass}
-          .stateObj=${stateObj}
-          .stateValue=${item.stateValue}
-        ></ha-state-icon>`
-      : html`<ha-icon .icon=${item.icon}></ha-icon>`;
+    // The wrapper centers the glyph in the circle whatever size the icon element reports.
+    return html`<span class="glyph"
+      >${
+        stateObj
+          ? html`<ha-state-icon
+              .hass=${this._hass}
+              .stateObj=${stateObj}
+              .stateValue=${item.stateValue}
+            ></ha-state-icon>`
+          : html`<ha-icon .icon=${item.icon}></ha-icon>`
+      }</span
+    >`;
   }
 
   private _renderItem(

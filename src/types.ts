@@ -99,6 +99,10 @@ export interface WhatHappenedConfig {
   exclude_entities?: string[];
   include_domains?: string[];
   exclude_domains?: string[];
+  /** Always show these entities, even when the smart default view would hide them. */
+  also_show_entities?: string[];
+  /** Show these domains on top of the smart default view (e.g. "sensor"). */
+  also_show_domains?: string[];
   hours_to_show?: number;
   max_entries?: number;
   order?: Order;

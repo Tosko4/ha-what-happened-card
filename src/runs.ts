@@ -66,13 +66,15 @@ export function convertRuns(
   mode: AutomationRuns,
   useColor: boolean,
   resolveRun: ((run: TimelineItem) => ActionEvent[] | undefined) | undefined,
+  /** Automations and scripts the user asked to see: their runs stay listed. */
+  keepRuns: ReadonlySet<string> = new Set(),
 ): TimelineItem[] {
   const hidden = new Set<TimelineItem>();
   const added: TimelineItem[] = [];
 
   for (const run of items) {
     if (!run.isRun || run.rich) continue;
-    if (mode !== "all") hidden.add(run);
+    if (mode !== "all" && !(run.entityId && keepRuns.has(run.entityId))) hidden.add(run);
     if (mode === "none" || !resolveRun) continue;
 
     const actions = resolveRun(run) ?? [];
