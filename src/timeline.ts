@@ -112,6 +112,41 @@ export function passesFilters(
   return true;
 }
 
+const GAP_STATES = new Set(["unavailable", "unknown"]);
+
+/**
+ * Keys of entries that only report an entity coming back after `unavailable` or `unknown` in
+ * the state it had before the gap (a cloud integration reconnecting, a device rebooting).
+ * Nothing changed, so with `hide_unavailable` such a line would read as an event that never
+ * happened, like "problem resolved" for a problem that was never there. An entry with a known
+ * cause is kept, and so is the first return in the window when the state before it is unknown.
+ */
+export function recoveryKeys(entries: Iterable<LogbookEntry>): Set<string> {
+  const byEntity = new Map<string, LogbookEntry[]>();
+  for (const e of entries) {
+    if (!e.entity_id || e.state === undefined || e.message !== undefined) continue;
+    const list = byEntity.get(e.entity_id);
+    if (list) list.push(e);
+    else byEntity.set(e.entity_id, [e]);
+  }
+  const keys = new Set<string>();
+  for (const list of byEntity.values()) {
+    list.sort((a, b) => a.when - b.when);
+    let before: string | undefined;
+    let inGap = false;
+    for (const e of list) {
+      if (GAP_STATES.has(e.state!)) {
+        inGap = true;
+        continue;
+      }
+      if (inGap && before === e.state && !hasKnownCause(e)) keys.add(entryKey(e));
+      before = e.state;
+      inGap = false;
+    }
+  }
+  return keys;
+}
+
 function toItem(
   hass: HomeAssistant,
   entry: LogbookEntry,
@@ -276,6 +311,8 @@ export function buildTimeline(
     .filter((e) => e.domain === "homeassistant" && e.message === "started")
     .map((e) => e.when);
   const picked = pickedEntities(config, hass);
+  const recovered =
+    (config.hide_unavailable ?? DEFAULTS.hide_unavailable) ? recoveryKeys(list) : new Set<string>();
 
   // Entries that started an automation or script a moment later, for example the press of a
   // button that is not worth a line on its own. They are kept so the action can be headed by
@@ -329,6 +366,7 @@ export function buildTimeline(
       }
       return false;
     })
+    .filter((e) => !recovered.has(entryKey(e)))
     .filter((e) => !restartNoise(e))
     .filter((e) => !isStandIn(e, standIns))
     .sort((a, b) => b.when - a.when);
