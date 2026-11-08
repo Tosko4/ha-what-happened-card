@@ -103,6 +103,7 @@ const states = [
   ["climate.bedroom", "heat", { friendly_name: "Bedroom thermostat" }],
   ["media_player.tv", "playing", { friendly_name: "Living room TV" }],
   ["switch.pump", "on", { friendly_name: "Irrigation pump" }],
+  ["vacuum.robot", "docked", { friendly_name: "Robot vacuum" }],
   ["alarm_control_panel.home", "armed_away", { friendly_name: "Home alarm" }],
 ].map(([entity_id, state, attributes]) => ({ entity_id, state, attributes }) as any);
 
@@ -206,14 +207,38 @@ const events: LogbookEntry[] = [
   { when: m(60 * 23), entity_id: "switch.pump", name: "Irrigation pump", state: "off" },
 ];
 
+const vacuumRuns = [
+  { started: m(95), minutes: 42, area: 38, emptied_bin: true, start_type: 4 },
+  { started: m(60 * 9), minutes: 27, area: 21, start_type: 1, rule_name: "Kitchen deep clean" },
+  { started: m(60 * 21), minutes: 4, area: 2, error: 12, start_type: 4 },
+];
+const plannerLog = [
+  {
+    ts: m(96),
+    kind: "start",
+    text: "Started cleaning Kitchen and Hallway. Kitchen: 6 days since last clean; nobody home.",
+  },
+  { ts: m(54), kind: "done", text: "Finished cleaning Kitchen and Hallway." },
+  { ts: m(30), kind: "docked", text: "Sent home: someone is home." },
+];
+events.push(
+  { when: m(96), entity_id: "vacuum.robot", name: "Robot vacuum", state: "cleaning" },
+  { when: m(53), entity_id: "vacuum.robot", name: "Robot vacuum", state: "docked" },
+);
+
 const hass: HomeAssistant = {
   states: Object.fromEntries(states.map((s: any) => [s.entity_id, s])),
-  entities: {},
+  entities: { "vacuum.robot": { entity_id: "vacuum.robot", platform: "tapo_rv30" } },
   devices: {},
   areas: {},
   locale: { language: "en", time_format: "24" },
+  callWS: async (msg: any) => (msg.type === "tapo_rv30/history/list" ? { runs: vacuumRuns } : {}),
   connection: {
-    subscribeMessage: async (cb: (m: any) => void) => {
+    subscribeMessage: async (cb: (m: any) => void, msg: any) => {
+      if (msg.type === "tapo_rv30/planner/subscribe") {
+        setTimeout(() => cb({ log: plannerLog }), 30);
+        return () => undefined;
+      }
       setTimeout(() => cb({ events }), 30);
       (window as any).__push = (e: LogbookEntry) => cb({ events: [e] });
       return () => undefined;

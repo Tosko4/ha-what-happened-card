@@ -53,3 +53,5 @@ export function stateColor(
       return neutral;
   }
 }
+
+export const ALERT_COLOR = "var(--error-color)";

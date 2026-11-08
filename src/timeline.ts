@@ -1,5 +1,6 @@
 import { resolveCause, runTrigger } from "./context";
 import { ACTOR_ICONS, fallbackIcon, stateColor } from "./appearance";
+import { REPLACED_STATES } from "./vacuum";
 import { dayKey, formatDayLabel } from "./format";
 import { describeState } from "./state-message";
 import type {
@@ -21,6 +22,7 @@ export const DEFAULTS = {
   compact: false,
   time_display: "both",
   tap_action: "more-info",
+  vacuum_details: true,
   hide_unavailable: true,
   collapse_repeats: true,
 } as const;
@@ -181,6 +183,8 @@ export function buildTimeline(
   config: WhatHappenedConfig,
   now: number,
   allowed?: Set<string>,
+  /** Integration-built items, and the vacuums whose plain logbook state changes they replace. */
+  extra?: { items: TimelineItem[]; vacuums: Set<string> },
 ): DayGroup[] {
   const since = now - effectiveHours(config) * 3_600_000;
   const maxEntries = effectiveMaxEntries(config);
@@ -192,9 +196,25 @@ export function buildTimeline(
       return ms >= since && ms <= now + FUTURE_TOLERANCE_MS;
     })
     .filter((e) => passesFilters(e, config, allowed))
+    .filter(
+      (e) =>
+        !(
+          extra &&
+          e.entity_id &&
+          extra.vacuums.has(e.entity_id) &&
+          REPLACED_STATES.has(e.state ?? "")
+        ),
+    )
     .sort((a, b) => b.when - a.when);
 
-  const merged = mergeChains(sorted.map((entry) => toItem(hass, entry, config)));
+  const richItems = (extra?.items ?? []).filter(
+    (i) => i.when >= since && i.when <= now + FUTURE_TOLERANCE_MS,
+  );
+  const merged = mergeChains(
+    [...sorted.map((entry) => toItem(hass, entry, config)), ...richItems].sort(
+      (a, b) => b.when - a.when,
+    ),
+  );
 
   const items: TimelineItem[] = [];
   let oldestOfLast = 0;
@@ -203,6 +223,8 @@ export function buildTimeline(
     if (
       collapse &&
       last &&
+      !item.rich &&
+      !last.rich &&
       item.entityId &&
       last.entityId === item.entityId &&
       last.verb === item.verb &&
@@ -235,10 +257,11 @@ export function buildTimeline(
 }
 
 export function plainSentence(item: TimelineItem): string {
-  let text = `${item.name} ${item.verb}`;
+  let text = item.text ?? `${item.name} ${item.verb}`;
   if (item.count > 1) text += ` ${item.count} times`;
   const cause = item.cause;
   if (cause?.actor) text += ` by ${cause.actor.name}`;
   if (cause?.trigger) text += `, triggered by ${cause.trigger}`;
+  if (item.details?.length) text += ` (${item.details.join(", ")})`;
   return text;
 }

@@ -4,6 +4,7 @@ import { classMap } from "lit/directives/class-map.js";
 import { styleMap } from "lit/directives/style-map.js";
 import { formatDateTime, formatRelative, formatTime } from "./format";
 import { subscribeLogbook } from "./logbook";
+import { findTapoVacuums, vacuumItems, type HistoryRun, type VacuumData } from "./vacuum";
 import { cardStyles } from "./styles";
 import { hasTarget, resolveTargetEntities } from "./targets";
 import {
@@ -53,6 +54,10 @@ export class WhatHappenedCard extends LitElement {
   private _subToken = 0;
   private _tick?: number;
   private _recomputeTimer?: number;
+  private _vacuums = new Map<string, VacuumData>();
+  private _vacKey?: string;
+  private _vacUnsubs: Array<() => void> = [];
+  private _vacToken = 0;
   private _registryRefs: unknown[] = [];
 
   public setConfig(config: WhatHappenedConfig): void {
@@ -65,6 +70,7 @@ export class WhatHappenedCard extends LitElement {
     }
     this._config = { ...config };
     this._subKey = undefined; // force re-evaluation of the subscription
+    this._vacKey = undefined;
     this._ensureSubscription();
     this._scheduleRecompute();
   }
@@ -101,10 +107,12 @@ export class WhatHappenedCard extends LitElement {
     super.connectedCallback();
     this._tick = window.setInterval(() => {
       this._now = Date.now();
+      this._refreshHistories();
       this._recompute();
     }, TICK_MS);
     if (this._hass && this._config) {
       this._subKey = undefined;
+      this._vacKey = undefined;
       this._ensureSubscription();
       this._scheduleRecompute();
     }
@@ -115,7 +123,9 @@ export class WhatHappenedCard extends LitElement {
     window.clearInterval(this._tick);
     window.clearTimeout(this._recomputeTimer);
     this._unsubscribe();
+    this._unsubscribeVacuums();
     this._subKey = undefined;
+    this._vacKey = undefined;
   }
 
   // ---------------------------------------------------------------- data
@@ -127,6 +137,82 @@ export class WhatHappenedCard extends LitElement {
   }
 
   private _ensureSubscription(): void {
+    this._ensureLogbook();
+    this._ensureVacuums();
+  }
+
+  // ----------------------------------------------- TapoVac-ADV (tapo_rv30)
+
+  private _unsubscribeVacuums(): void {
+    this._vacToken++;
+    for (const unsub of this._vacUnsubs) unsub();
+    this._vacUnsubs = [];
+  }
+
+  private _vacuumVisible(id: string, config: WhatHappenedConfig): boolean {
+    if (this._allowed && !this._allowed.has(id)) return false;
+    if (config.exclude_entities?.includes(id)) return false;
+    if (config.include_domains?.length && !config.include_domains.includes("vacuum")) return false;
+    return !config.exclude_domains?.includes("vacuum");
+  }
+
+  private _ensureVacuums(): void {
+    const hass = this._hass;
+    const config = this._config;
+    if (!hass || !config || !this.isConnected) return;
+
+    const ids =
+      config.vacuum_details === false
+        ? []
+        : findTapoVacuums(hass).filter((id) => this._vacuumVisible(id, config));
+    const key = JSON.stringify([...ids].sort());
+    if (key === this._vacKey) return;
+    this._vacKey = key;
+    this._unsubscribeVacuums();
+    this._vacuums.clear();
+    const token = this._vacToken;
+
+    for (const id of ids) {
+      const data: VacuumData = { entityId: id, log: [], runs: [] };
+      this._vacuums.set(id, data);
+      hass.connection
+        .subscribeMessage<{ log?: VacuumData["log"] }>(
+          (view) => {
+            if (token !== this._vacToken) return;
+            data.log = view.log ?? [];
+            this._refreshHistory(data);
+            this._scheduleRecompute();
+          },
+          { type: "tapo_rv30/planner/subscribe", entity_id: id },
+        )
+        .then((unsub) => {
+          if (token !== this._vacToken) unsub();
+          else this._vacUnsubs.push(unsub);
+        })
+        .catch(() => undefined); // the planner is optional: history alone still works
+      this._refreshHistory(data);
+    }
+  }
+
+  private _refreshHistory(data: VacuumData): void {
+    const hass = this._hass;
+    if (!hass) return;
+    const token = this._vacToken;
+    hass
+      .callWS<{ runs?: HistoryRun[] }>({ type: "tapo_rv30/history/list", entity_id: data.entityId })
+      .then((result) => {
+        if (token !== this._vacToken) return;
+        data.runs = (result.runs ?? []).filter((r) => r.started);
+        this._scheduleRecompute();
+      })
+      .catch(() => undefined);
+  }
+
+  private _refreshHistories(): void {
+    for (const data of this._vacuums.values()) this._refreshHistory(data);
+  }
+
+  private _ensureLogbook(): void {
     const hass = this._hass;
     const config = this._config;
     if (!hass || !config || !this.isConnected) return;
@@ -201,7 +287,23 @@ export class WhatHappenedCard extends LitElement {
       this._config,
       this._now,
       this._allowed,
+      this._extraItems(),
     );
+  }
+
+  private _extraItems() {
+    const hass = this._hass;
+    const config = this._config;
+    const vacuums = new Set<string>();
+    const items = [];
+    if (hass && config) {
+      for (const data of this._vacuums.values()) {
+        if (!data.log.length && !data.runs.length) continue;
+        vacuums.add(data.entityId);
+        items.push(...vacuumItems(hass, data, config));
+      }
+    }
+    return { items, vacuums };
   }
 
   // ------------------------------------------------------------ interaction
@@ -287,7 +389,8 @@ export class WhatHappenedCard extends LitElement {
   }
 
   private _renderIcon(item: TimelineItem): TemplateResult {
-    const stateObj = item.entityId ? this._hass?.states[item.entityId] : undefined;
+    const stateObj =
+      item.entityId && !item.fixedIcon ? this._hass?.states[item.entityId] : undefined;
     // Entities get their icon from <ha-state-icon>, as the HA design guidelines require.
     return stateObj
       ? html`<ha-state-icon
@@ -334,9 +437,16 @@ export class WhatHappenedCard extends LitElement {
         >
           <div class="body">
             <div class="primary">
-              <span class="subject">${item.name}</span> ${item.verb}
+              ${
+                item.text ? item.text : html`<span class="subject">${item.name}</span> ${item.verb}`
+              }
               ${item.count > 1 ? html`<span class="count">×${item.count}</span>` : nothing}
             </div>
+            ${
+              item.details?.length
+                ? html`<div class="secondary">${item.details.join(" · ")}</div>`
+                : nothing
+            }
             ${showCause ? this._renderCause(item, avatars) : nothing}
           </div>
           ${this._renderTime(item, config)}

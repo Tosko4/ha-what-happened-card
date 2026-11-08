@@ -21,6 +21,7 @@ export interface EntityRegistryEntry {
   area_id?: string | null;
   labels?: string[];
   hidden?: boolean;
+  platform?: string;
 }
 
 export interface DeviceRegistryEntry {
@@ -49,6 +50,7 @@ export interface HomeAssistant {
       options?: { resubscribe?: boolean },
     ): Promise<() => void>;
   };
+  callWS<T>(message: Record<string, unknown>): Promise<T>;
   formatEntityState?(stateObj: HassEntity, state?: string): string;
 }
 
@@ -104,6 +106,7 @@ export interface WhatHappenedConfig {
   time_display?: TimeDisplay;
   tap_action?: TapAction;
   max_height?: number;
+  vacuum_details?: boolean;
   hide_unavailable?: boolean;
   collapse_repeats?: boolean;
 }
@@ -148,6 +151,14 @@ export interface TimelineItem {
   cause?: Cause;
   count: number;
   accent: string;
+  /** Extra facts shown under the sentence, e.g. "42 min", "38 m²". */
+  details?: string[];
+  /** Full sentence for entries that are not "subject + verb" (planner log). */
+  text?: string;
+  /** Built from an integration (not the logbook): never merged with neighbours. */
+  rich?: boolean;
+  /** Draw `icon` as given instead of asking <ha-state-icon>. */
+  fixedIcon?: boolean;
 }
 
 export interface DayGroup {

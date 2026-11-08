@@ -46,6 +46,7 @@ const LABELS: Record<string, string> = {
   time_display: "Time",
   tap_action: "Tap action",
   max_height: "Maximum height",
+  vacuum_details: "TapoVac-ADV: show cleaning runs with rooms, duration and reason",
   hide_unavailable: "Hide unavailable / unknown states",
   collapse_repeats: "Merge rapid repeats of the same event",
 };
@@ -154,6 +155,7 @@ const DISPLAY_SCHEMA: Schema = [
 ];
 
 const RULES_SCHEMA: Schema = [
+  { name: "vacuum_details", selector: { boolean: {} } },
   { name: "hide_unavailable", selector: { boolean: {} } },
   { name: "collapse_repeats", selector: { boolean: {} } },
 ];

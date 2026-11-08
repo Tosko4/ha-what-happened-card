@@ -12,6 +12,7 @@ export function makeHass(states: HassEntity[], extra: Partial<HomeAssistant> = {
   return {
     states: Object.fromEntries(states.map((s) => [s.entity_id, s])),
     connection: { subscribeMessage: async () => () => undefined },
+    callWS: async () => ({}) as never,
     ...extra,
   };
 }
