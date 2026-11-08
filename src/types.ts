@@ -126,6 +126,8 @@ export interface Cause {
   actor?: Actor;
   /** Human readable trigger, e.g. "state of Hallway motion". */
   trigger?: string;
+  /** Entity whose state change started the automation, if it could be identified. */
+  triggerEntityId?: string;
 }
 
 export interface TimelineItem {
@@ -141,6 +143,8 @@ export interface TimelineItem {
   stateValue?: string;
   picture?: string;
   isPerson: boolean;
+  /** True for "automation/script was triggered" entries. */
+  isRun: boolean;
   cause?: Cause;
   count: number;
   accent: string;

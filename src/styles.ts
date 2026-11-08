@@ -2,7 +2,7 @@ import { css } from "lit";
 
 /**
  * Follows the Home Assistant design guidelines: design tokens for spacing, radius and
- * type (with fallbacks for older frontends), tile-style state icons (40px badge, 24px
+ * type (with fallbacks for older frontends), tile-style state icons (32px badge, 20px
  * icon, 20% tint of the state color), list-style rows and badge-style details.
  */
 export const cardStyles = css`
@@ -17,14 +17,14 @@ export const cardStyles = css`
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    --wh-node: 40px;
-    --wh-icon: 24px;
+    --wh-node: 32px;
+    --wh-icon: 20px;
     --wh-surface: var(--ha-card-background, var(--card-background-color, #fff));
     --wh-secondary: var(--secondary-text-color);
   }
   ha-card.compact {
-    --wh-node: 32px;
-    --wh-icon: 20px;
+    --wh-node: 24px;
+    --wh-icon: 16px;
   }
   .card-header {
     flex: none;
@@ -117,28 +117,21 @@ export const cardStyles = css`
     border-radius: inherit;
     object-fit: cover;
   }
-  .badge {
-    position: absolute;
-    right: -4px;
-    bottom: -4px;
-    width: 18px;
-    height: 18px;
-    box-sizing: border-box;
-    border-radius: var(--ha-border-radius-circle, 50%);
-    border: 2px solid var(--wh-surface);
-    overflow: hidden;
-    display: grid;
+  .avatar {
+    display: inline-grid;
     place-items: center;
+    width: 16px;
+    height: 16px;
+    margin: 0 4px -3px 6px;
+    border-radius: var(--ha-border-radius-circle, 50%);
+    object-fit: cover;
+  }
+  .avatar.initial {
     background: var(--primary-color);
     color: var(--text-primary-color, #fff);
     font-size: var(--ha-font-size-xs, 10px);
     font-weight: var(--ha-font-weight-medium, 500);
     line-height: 1;
-  }
-  .badge img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
   }
 
   .row {
@@ -167,12 +160,12 @@ export const cardStyles = css`
   .body {
     min-width: 0;
     flex: 1;
-    /* Center a single line against the 40px icon. */
-    padding-top: var(--ha-space-2, 8px);
+    /* Center the first line against the icon. */
+    padding-top: var(--ha-space-1, 4px);
   }
   .primary {
     color: var(--primary-text-color);
-    font-size: var(--ha-font-size-l, 16px);
+    font-size: var(--ha-font-size-m, 14px);
     font-weight: var(--ha-font-weight-normal, 400);
     line-height: 1.25;
     overflow-wrap: anywhere;
@@ -183,7 +176,7 @@ export const cardStyles = css`
   .secondary {
     margin-top: 2px;
     color: var(--wh-secondary);
-    font-size: var(--ha-font-size-m, 14px);
+    font-size: var(--ha-font-size-s, 12px);
     line-height: 1.3;
     overflow-wrap: anywhere;
   }
@@ -225,7 +218,7 @@ export const cardStyles = css`
   /* Trailing meta */
   .time {
     flex: none;
-    padding-top: var(--ha-space-2, 8px);
+    padding-top: var(--ha-space-1, 4px);
     text-align: right;
     color: var(--wh-secondary);
     font-size: var(--ha-font-size-s, 12px);
@@ -251,21 +244,12 @@ export const cardStyles = css`
     color: var(--disabled-text-color);
   }
 
-  ha-card.compact .primary {
-    font-size: var(--ha-font-size-m, 14px);
-  }
-  ha-card.compact .secondary {
-    font-size: var(--ha-font-size-s, 12px);
-  }
   ha-card.compact .body,
   ha-card.compact .time {
-    padding-top: var(--ha-space-1, 4px);
+    padding-top: 0;
   }
-  ha-card.compact .badge {
-    width: 14px;
-    height: 14px;
-    right: -3px;
-    bottom: -3px;
+  ha-card.compact .row {
+    margin-bottom: var(--ha-space-1, 4px);
   }
 
   @container wh (max-width: 340px) {
@@ -283,7 +267,7 @@ export const cardStyles = css`
       display: inline;
     }
     .body {
-      padding-top: var(--ha-space-2, 8px);
+      padding-top: var(--ha-space-1, 4px);
     }
     .item {
       column-gap: var(--ha-space-2, 8px);

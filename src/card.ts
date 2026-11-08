@@ -15,6 +15,7 @@ import {
   plainSentence,
 } from "./timeline";
 import type {
+  Actor,
   DayGroup,
   HomeAssistant,
   LogbookEntry,
@@ -305,9 +306,7 @@ export class WhatHappenedCard extends LitElement {
     const avatars = config.show_avatars ?? DEFAULTS.show_avatars;
     const showCause = config.show_cause ?? DEFAULTS.show_cause;
     const clickable = !!item.entityId && (config.tap_action ?? DEFAULTS.tap_action) !== "none";
-    const actor = item.cause?.actor;
     const photo = avatars && item.picture;
-    const badge = avatars && !photo && actor?.kind === "user" ? actor : undefined;
 
     return html`
       <li class=${classMap({ item: true, last })}>
@@ -320,17 +319,6 @@ export class WhatHappenedCard extends LitElement {
               photo
                 ? html`<img class="photo-img" src=${item.picture!} alt="" loading="lazy" />`
                 : this._renderIcon(item)
-            }
-            ${
-              badge
-                ? html`<span class="badge" title=${badge.name}
-                    >${
-                      badge.picture
-                        ? html`<img src=${badge.picture} alt="" loading="lazy" />`
-                        : badge.name.charAt(0).toUpperCase()
-                    }</span
-                  >`
-                : nothing
             }
           </div>
           <div class="line"></div>
@@ -349,7 +337,7 @@ export class WhatHappenedCard extends LitElement {
               <span class="subject">${item.name}</span> ${item.verb}
               ${item.count > 1 ? html`<span class="count">×${item.count}</span>` : nothing}
             </div>
-            ${showCause ? this._renderCause(item) : nothing}
+            ${showCause ? this._renderCause(item, avatars) : nothing}
           </div>
           ${this._renderTime(item, config)}
         </div>
@@ -357,7 +345,13 @@ export class WhatHappenedCard extends LitElement {
     `;
   }
 
-  private _renderCause(item: TimelineItem): TemplateResult | typeof nothing {
+  private _renderAvatar(actor: Actor): TemplateResult {
+    return actor.picture
+      ? html`<img class="avatar" src=${actor.picture} alt="" loading="lazy" />`
+      : html`<span class="avatar initial">${actor.name.charAt(0).toUpperCase()}</span>`;
+  }
+
+  private _renderCause(item: TimelineItem, avatars: boolean): TemplateResult | typeof nothing {
     const cause = item.cause;
     if (!cause || (!cause.actor && !cause.trigger)) return nothing;
     const actor = cause.actor;
@@ -367,7 +361,7 @@ export class WhatHappenedCard extends LitElement {
       <div class="secondary">
         ${
           actor
-            ? html`by
+            ? html`by${avatars && actor.kind === "user" ? this._renderAvatar(actor) : nothing}
               ${
                 interactive
                   ? html`<button

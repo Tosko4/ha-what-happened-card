@@ -7,6 +7,7 @@ const hass = makeHass([
   state("light.kitchen", "on", { friendly_name: "Kitchen light" }),
   state("person.jan", "home", { friendly_name: "Jan", entity_picture: "/jan.png", user_id: "u1" }),
   state("automation.a", "on", { friendly_name: "Auto A" }),
+  state("binary_sensor.hall", "on", { friendly_name: "Hallway motion", device_class: "motion" }),
 ]);
 const cfg = (c: Partial<WhatHappenedConfig> = {}): WhatHappenedConfig => ({
   type: "custom:what-happened-card",
@@ -147,5 +148,47 @@ describe("passesFilters", () => {
       false,
     );
     expect(passesFilters(light, cfg(), new Set(["light.other"]))).toBe(false);
+  });
+});
+
+describe("chain merging", () => {
+  const chain = [
+    entry({ ago: 60, entity_id: "binary_sensor.hall", name: "Hallway motion", state: "on" }),
+    entry({
+      ago: 58,
+      entity_id: "automation.a",
+      domain: "automation",
+      name: "Auto A",
+      message: "triggered by state of binary_sensor.hall",
+      source: "state of binary_sensor.hall",
+    }),
+    entry({
+      ago: 57,
+      entity_id: "light.kitchen",
+      name: "Kitchen light",
+      state: "on",
+      context_event_type: "automation_triggered",
+      context_entity_id: "automation.a",
+      context_source: "state of binary_sensor.hall",
+    }),
+  ];
+
+  it("folds sensor, automation run and device into a single entry", () => {
+    const items = flat(buildTimeline(hass, chain, cfg(), NOW));
+    expect(items).toHaveLength(1);
+    expect(plainSentence(items[0])).toBe(
+      "Kitchen light was turned on by Auto A, triggered by Hallway motion detected motion",
+    );
+  });
+
+  it("keeps an automation run that had no visible effect", () => {
+    const items = flat(buildTimeline(hass, [chain[1]], cfg(), NOW));
+    expect(items).toHaveLength(1);
+    expect(items[0].verb).toBe("was triggered");
+  });
+
+  it("keeps unrelated entries", () => {
+    const other = entry({ ago: 30, entity_id: "person.jan", name: "Jan", state: "home" });
+    expect(flat(buildTimeline(hass, [...chain, other], cfg(), NOW))).toHaveLength(2);
   });
 });

@@ -27,6 +27,7 @@ export const DEFAULTS = {
 
 export const LIMITS = { hours: [1, 720], entries: [1, 500] } as const;
 
+const CHAIN_WINDOW_MS = 60 * 1000;
 const COLLAPSE_WINDOW_MS = 10 * 60 * 1000;
 const FUTURE_TOLERANCE_MS = 5 * 60 * 1000;
 
@@ -119,6 +120,8 @@ function toItem(
     stateValue: entry.state,
     picture,
     isPerson,
+    isRun:
+      entry.state === undefined && entry.message !== undefined && /^triggered/.test(entry.message),
     cause,
     count: 1,
     accent: stateColor(domain, stateObj?.attributes.device_class, entry.state, tone, useColor),
@@ -128,6 +131,44 @@ function toItem(
 function causeSignature(item: TimelineItem): string {
   const c = item.cause;
   return `${c?.actor?.kind ?? ""}:${c?.actor?.name ?? ""}:${c?.trigger ?? ""}`;
+}
+
+/**
+ * One thing that happened should be one entry: when a sensor triggered an
+ * automation that switched a device, only the device entry is kept. It explains
+ * the whole chain, so the automation run and the triggering state change are folded in.
+ */
+function mergeChains(items: TimelineItem[]): TimelineItem[] {
+  const hidden = new Set<TimelineItem>();
+  for (const effect of items) {
+    const actor = effect.cause?.actor;
+    if (!actor?.entityId || (actor.kind !== "automation" && actor.kind !== "script")) continue;
+
+    for (const run of items) {
+      if (
+        run.isRun &&
+        run.entityId === actor.entityId &&
+        Math.abs(run.when - effect.when) <= CHAIN_WINDOW_MS
+      ) {
+        hidden.add(run);
+      }
+    }
+    const sourceId = effect.cause?.triggerEntityId;
+    if (!sourceId) continue;
+    const source = items.find(
+      (i) =>
+        i !== effect &&
+        !i.isRun &&
+        i.entityId === sourceId &&
+        i.when <= effect.when + 5_000 &&
+        effect.when - i.when <= CHAIN_WINDOW_MS,
+    );
+    if (source) {
+      hidden.add(source);
+      effect.cause = { ...effect.cause, trigger: `${source.name} ${source.verb}` };
+    }
+  }
+  return items.filter((i) => !hidden.has(i));
 }
 
 /**
@@ -153,10 +194,11 @@ export function buildTimeline(
     .filter((e) => passesFilters(e, config, allowed))
     .sort((a, b) => b.when - a.when);
 
+  const merged = mergeChains(sorted.map((entry) => toItem(hass, entry, config)));
+
   const items: TimelineItem[] = [];
   let oldestOfLast = 0;
-  for (const entry of sorted) {
-    const item = toItem(hass, entry, config);
+  for (const item of merged) {
     const last = items[items.length - 1];
     if (
       collapse &&

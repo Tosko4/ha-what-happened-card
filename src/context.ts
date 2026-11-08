@@ -29,6 +29,20 @@ export function personByUserId(hass: HomeAssistant, userId: string): PersonInfo 
   return undefined;
 }
 
+/** First entity id mentioned in a raw trigger description such as "state of sensor.x". */
+export function firstEntityId(text: string | undefined): string | undefined {
+  if (!text) return undefined;
+  return text.match(/\b[a-z_]+\.[a-z0-9_]+\b/)?.[0];
+}
+
+function rawTrigger(entry: LogbookEntry): string | undefined {
+  if (entry.context_source) return entry.context_source;
+  if (entry.context_message?.startsWith("triggered by ")) {
+    return entry.context_message.slice("triggered by ".length);
+  }
+  return undefined;
+}
+
 function triggerFrom(hass: HomeAssistant, entry: LogbookEntry): string | undefined {
   let raw = entry.context_source;
   if (!raw && entry.context_message?.startsWith("triggered by ")) {
@@ -73,7 +87,11 @@ export function resolveCause(hass: HomeAssistant, entry: LogbookEntry): Cause | 
       ),
       entityId: entry.context_entity_id,
     };
-    return { actor, trigger: triggerFrom(hass, entry) };
+    return {
+      actor,
+      trigger: triggerFrom(hass, entry),
+      triggerEntityId: firstEntityId(rawTrigger(entry)),
+    };
   }
 
   if (entry.context_user_id) {
