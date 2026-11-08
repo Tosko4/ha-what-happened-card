@@ -81,9 +81,16 @@ export function passesFilters(
   config: WhatHappenedConfig,
   allowed: Set<string> | undefined,
   hass?: HomeAssistant,
+  /** Skip the "is it worth showing" checks (an entry that started an automation). */
+  forceMeaningful = false,
 ): boolean {
   const domain = domainOf(entry);
-  if (hass && entry.entity_id && !(config.show_diagnostic ?? DEFAULTS.show_diagnostic)) {
+  if (
+    !forceMeaningful &&
+    hass &&
+    entry.entity_id &&
+    !(config.show_diagnostic ?? DEFAULTS.show_diagnostic)
+  ) {
     const reg = hass.entities?.[entry.entity_id];
     const picked = pickedEntities(config, hass).has(entry.entity_id);
     // Diagnostic, config and hidden entities are noise unless the user asked for them by name.
@@ -94,6 +101,7 @@ export function passesFilters(
   if (config.include_domains?.length && !config.include_domains.includes(domain)) return false;
   if (config.exclude_domains?.includes(domain)) return false;
   if (
+    !forceMeaningful &&
     (config.activity ?? DEFAULTS.activity) === "meaningful" &&
     !isMeaningful(entry, config, hass)
   ) {
@@ -268,6 +276,24 @@ export function buildTimeline(
     .filter((e) => e.domain === "homeassistant" && e.message === "started")
     .map((e) => e.when);
   const picked = pickedEntities(config, hass);
+
+  // Entries that started an automation or script a moment later, for example the press of a
+  // button that is not worth a line on its own. They are kept so the action can be headed by
+  // them, and dropped again if nothing ends up folded under them.
+  const triggerTimes = new Map<string, number[]>();
+  for (const e of list) {
+    const raw = isRunEntry(e)
+      ? (e.source ?? e.message?.replace(/^triggered by /, ""))
+      : e.context_event_type === "automation_triggered" || e.context_event_type === "script_started"
+        ? (e.context_source ?? e.context_message?.replace(/^triggered by /, ""))
+        : undefined;
+    const id = firstEntityId(raw);
+    if (id) triggerTimes.set(id, [...(triggerTimes.get(id) ?? []), e.when]);
+  }
+  const startsSomething = (e: LogbookEntry): boolean =>
+    !!e.entity_id &&
+    (triggerTimes.get(e.entity_id) ?? []).some((at) => e.when <= at + 5 && at - e.when <= 60);
+  const softKeys = new Set<string>();
   const restartNoise = (e: LogbookEntry): boolean => {
     if ((config.activity ?? DEFAULTS.activity) !== "meaningful") return false;
     if (e.domain === "homeassistant") {
@@ -276,6 +302,7 @@ export function buildTimeline(
     }
     if (
       hasKnownCause(e) ||
+      startsSomething(e) ||
       (e.entity_id && picked.has(e.entity_id)) ||
       RESTART_EXEMPT_DOMAINS.has(e.domain ?? e.entity_id?.split(".")[0] ?? "")
     ) {
@@ -290,7 +317,18 @@ export function buildTimeline(
       const ms = e.when * 1000;
       return ms >= since && ms <= now + FUTURE_TOLERANCE_MS;
     })
-    .filter((e) => passesFilters(e, config, allowed, hass))
+    .filter((e) => {
+      if (passesFilters(e, config, allowed, hass)) return true;
+      if (
+        smartFilteringOn(config) &&
+        startsSomething(e) &&
+        passesFilters(e, config, allowed, hass, true)
+      ) {
+        softKeys.add(entryKey(e));
+        return true;
+      }
+      return false;
+    })
     .filter((e) => !restartNoise(e))
     .filter((e) => !isStandIn(e, standIns))
     .sort((a, b) => b.when - a.when);
@@ -298,14 +336,21 @@ export function buildTimeline(
   const runs = config.automation_runs ?? DEFAULTS.automation_runs;
   const converted = convertRuns(
     hass,
-    [...sorted.map((entry) => toItem(hass, entry, config)), ...richItems],
+    [
+      ...sorted.map((entry) => {
+        const item = toItem(hass, entry, config);
+        if (softKeys.has(item.key)) item.soft = true;
+        return item;
+      }),
+      ...richItems,
+    ],
     runs,
     config.state_color ?? DEFAULTS.state_color,
     config.show_actions === false ? undefined : resolveRun,
     picked,
   ).sort((a, b) => b.when - a.when);
   // With automation_runs: all, runs stay visible next to what they did.
-  const chained = mergeChains(converted, runs !== "all", picked);
+  const chained = mergeChains(converted, runs !== "all", picked).filter((i) => !i.soft);
   const bursts = groupBursts(
     summarizeChatty(
       dedupe(hass, foldTrackers(hass, chained, config), config),

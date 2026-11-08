@@ -249,3 +249,108 @@ describe("icon colors", () => {
     expect(text.accent).toBe("var(--orange-color, #ff9800)");
   });
 });
+
+describe("any action, not just one button", () => {
+  // The press came from a device on the wall: nobody is on record as having done it.
+  const wallPress = (ago: number) =>
+    entry({
+      ago,
+      entity_id: "input_button.prid",
+      name: "4 – Prídem onedlho",
+      state: "2026-11-08T16:38:00",
+    });
+  const text = (id: string, name: string, ago: number, withTrigger: boolean) =>
+    entry({
+      ago,
+      entity_id: id,
+      name,
+      state: "Kod 4",
+      context_event_type: "automation_triggered",
+      context_entity_id: "automation.code",
+      ...(withTrigger ? { context_source: "input_button.prid was pressed" } : {}),
+    });
+
+  const action = (withTriggerOnTexts: boolean): LogbookEntry[] => [
+    wallPress(100),
+    entry({
+      ago: 99,
+      entity_id: "automation.code",
+      domain: "automation",
+      name: "DevControl – Hlásenie kódu (spracovanie)",
+      message: "triggered by input_button.prid was pressed",
+      source: "input_button.prid was pressed",
+    }),
+    text("text.b35", 'JadivClock 3.5" Broadcast', 98, withTriggerOnTexts),
+    text("text.b43", 'JadivClock4.3" Jedáleň JadivClock Broadcast', 98, withTriggerOnTexts),
+    text("text.b24", 'JadivClock 2.4" Broadcast', 98, withTriggerOnTexts),
+  ];
+
+  it("is headed by a press that nobody is on record for", () => {
+    const result = build(action(true));
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe("4 – Prídem onedlho");
+    expect(result[0].verb).toBe("was pressed");
+    expect(result[0].cause).toBeUndefined();
+    expect(result[0].effects!.map((e) => `${e.name} ${e.verb}`)).toEqual([
+      "Atom Echo 01 said “Kod 4”",
+      "3 text entities changed to Kod 4",
+    ]);
+  });
+
+  it("keeps effects together although only some of them name their trigger", () => {
+    const result = build(action(false));
+    expect(result).toHaveLength(1);
+    expect(result[0].effects).toHaveLength(2);
+  });
+
+  it("shows the press on its own when it only caused one effect that is not worth a line", () => {
+    // the press is dropped when nothing is folded under it and it is not worth a row itself
+    const lonely = [wallPress(100)];
+    expect(build(lonely)).toHaveLength(0);
+  });
+
+  it("does not mix two presses that happen seconds apart", () => {
+    const second = {
+      ...action(true)[0],
+      entity_id: "input_button.other",
+      name: "Other",
+      when: NOW / 1000 - 96,
+    };
+    const hassTwo = makeHass([
+      ...Object.values(hass.states),
+      state("input_button.other", "unknown", { friendly_name: "Other" }),
+    ]);
+    const entries = [
+      ...action(true),
+      second,
+      entry({
+        ago: 95,
+        entity_id: "text.b35",
+        name: 'JadivClock 3.5" Broadcast',
+        state: "Kod 9",
+        context_event_type: "automation_triggered",
+        context_entity_id: "automation.code",
+        context_source: "input_button.other was pressed",
+      }),
+      entry({
+        ago: 95,
+        entity_id: "text.b24",
+        name: 'JadivClock 2.4" Broadcast',
+        state: "Kod 9",
+        context_event_type: "automation_triggered",
+        context_entity_id: "automation.code",
+        context_source: "input_button.other was pressed",
+      }),
+    ];
+    const result = buildTimeline(
+      hassTwo,
+      entries,
+      cfg(),
+      NOW,
+      undefined,
+      undefined,
+      () => say,
+    ).flatMap((g) => g.items);
+    expect(result.map((i) => i.name).sort()).toEqual(["4 – Prídem onedlho", "Other"].sort());
+  });
+});

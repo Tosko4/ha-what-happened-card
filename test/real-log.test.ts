@@ -80,7 +80,11 @@ const log: LogbookEntry[] = [
     context_entity_id: "automation.angel",
   }),
   // --- "Onedlho sa bude vysávať": a button starts an automation, which runs a script, which speaks
-  e(420, { entity_id: "input_button.code44", name: "44 – Onedlho", state: "2026-11-08T14:00:00" }),
+  e(420, {
+    entity_id: "input_button.code44",
+    name: "44 – Onedlho sa bude vysávať (2–15 min)",
+    state: "2026-11-08T14:00:00",
+  }),
   e(419, { entity_id: "input_select.who", name: "Hlásenie – kto hlási", state: "iné", ...byCode }),
   e(418, {
     entity_id: "script.tts_announce",

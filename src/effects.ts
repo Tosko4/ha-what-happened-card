@@ -54,22 +54,63 @@ function viaOf(effects: TimelineItem[]): Actor[] {
   return out;
 }
 
+function triggerOf(cluster: TimelineItem[]) {
+  const withTrigger = cluster.find((c) => c.cause?.trigger);
+  return withTrigger
+    ? {
+        trigger: withTrigger.cause!.trigger,
+        triggerEntityId: withTrigger.cause!.triggerEntityId,
+      }
+    : undefined;
+}
+
+/**
+ * Two different triggers inside one burst (two buttons pressed within seconds) are two actions.
+ * Effects that do not name their trigger join the nearest one.
+ */
+function splitBySource(clusters: TimelineItem[][]): TimelineItem[][] {
+  return clusters.flatMap((cluster) => {
+    const sources = new Map<string, TimelineItem>();
+    for (const c of cluster) {
+      const source = c.cause?.source;
+      if (source) sources.set(source.key, source);
+    }
+    if (sources.size <= 1) return [cluster];
+    const parts = new Map<string, TimelineItem[]>([...sources.keys()].map((k) => [k, []]));
+    for (const c of cluster) {
+      let key = c.cause?.source?.key;
+      if (!key) {
+        let best = Infinity;
+        for (const [k, source] of sources) {
+          const gap = Math.abs(source.when - c.when);
+          if (gap < best) {
+            best = gap;
+            key = k;
+          }
+        }
+      }
+      parts.get(key!)!.push(c);
+    }
+    return [...parts.values()];
+  });
+}
+
 export function groupEffects(
   hass: HomeAssistant,
   items: TimelineItem[],
   /** Entities the user asked to see: they stay rows of their own, never nested. */
   picked: ReadonlySet<string> = new Set(),
 ): TimelineItem[] {
-  // Everything done by an automation or script, grouped by what started it.
+  // Everything one automation or script did. Effects of one action happen within seconds of
+  // each other; what each effect knows about its trigger varies (one logbook line names the
+  // pressed button, the next does not), so the automation is what ties them together.
   const byKey = new Map<string, TimelineItem[]>();
   for (const item of items) {
     const cause = item.cause;
     const actor = cause?.actor;
     if (!actor?.entityId || (actor.kind !== "automation" && actor.kind !== "script")) continue;
     if (item.effects || (item.entityId && picked.has(item.entityId))) continue;
-    const key = cause?.source
-      ? `source|${cause.source.key}`
-      : `run|${actor.entityId}|${cause?.trigger ?? ""}`;
+    const key = actor.entityId;
     const list = byKey.get(key);
     if (list) list.push(item);
     else byKey.set(key, [item]);
@@ -93,7 +134,7 @@ export function groupEffects(
       else clusters.push([item]);
     }
 
-    for (const cluster of clusters) {
+    for (const cluster of splitBySource(clusters)) {
       cluster.sort((a, b) => a.when - b.when);
       const source = cluster.find((c) => c.cause?.source)?.cause?.source;
       // One effect of a sensor is better told in one line; one effect of a person's press is
@@ -118,6 +159,7 @@ export function groupEffects(
       if (source) {
         head = {
           ...source,
+          soft: undefined,
           key: `group|${source.key}|${first.key}`,
           effects,
           via,
@@ -140,9 +182,7 @@ export function groupEffects(
           isRun: false,
           count: 1,
           rich: true,
-          cause: first.cause?.trigger
-            ? { trigger: first.cause.trigger, triggerEntityId: first.cause.triggerEntityId }
-            : undefined,
+          cause: triggerOf(cluster),
           effects,
           accent: stateColor(kind, undefined, "on", "active", true),
         };
