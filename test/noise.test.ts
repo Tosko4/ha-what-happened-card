@@ -270,6 +270,39 @@ describe("meaningful activity (default)", () => {
     ).toHaveLength(2);
   });
 
+  it("shows helpers and buttons only when a person used them", () => {
+    const h = makeHass([
+      state("input_boolean.guest", "on", { friendly_name: "Guest mode" }),
+      state("button.repairs", "unknown", { friendly_name: "Repairs" }),
+      state("device_tracker.phone", "home", { friendly_name: "Phone" }),
+      state("binary_sensor.todo", "on", { friendly_name: "Todo" }),
+    ]);
+    const shown = (e: LogbookEntry) =>
+      buildTimeline(h, [e], cfg(), NOW).flatMap((g) => g.items).length;
+    const byPerson = { context_user_id: "u1", context_event_type: "call_service" };
+    const byAutomation = {
+      context_event_type: "automation_triggered",
+      context_entity_id: "automation.x",
+    };
+    const helper = (c = {}) =>
+      entry({ ago: 30, entity_id: "input_boolean.guest", name: "Guest mode", state: "on", ...c });
+    expect(shown(helper(byPerson))).toBe(1);
+    expect(shown(helper(byAutomation))).toBe(0);
+    expect(shown(helper())).toBe(0);
+    const press = (c = {}) =>
+      entry({ ago: 30, entity_id: "button.repairs", name: "Repairs", state: "2026-11-08", ...c });
+    expect(shown(press())).toBe(0);
+    expect(shown(press(byPerson))).toBe(1);
+    // a tracker only repeats its person; a class-less binary sensor needs a known cause
+    expect(
+      shown(entry({ ago: 30, entity_id: "device_tracker.phone", name: "Phone", state: "home" })),
+    ).toBe(0);
+    const todo = (c = {}) =>
+      entry({ ago: 30, entity_id: "binary_sensor.todo", name: "Todo", state: "on", ...c });
+    expect(shown(todo())).toBe(0);
+    expect(shown(todo(byAutomation))).toBe(1);
+  });
+
   it("filters binary sensors by what they report", () => {
     const h = makeHass([
       state("binary_sensor.door", "on", { device_class: "door" }),

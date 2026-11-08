@@ -77,12 +77,10 @@ export function convertRuns(
 
     const actions = resolveRun(run) ?? [];
     const kind = run.domain === "script" ? "script" : "automation";
-    const actor: Actor = {
-      kind,
-      name: run.name,
-      entityId: run.entityId,
-      icon: ACTOR_ICONS[kind],
-    };
+    const own: Actor = { kind, name: run.name, entityId: run.entityId, icon: ACTOR_ICONS[kind] };
+    // A script started by an automation: the automation is who did it, the script only how.
+    const actor = run.cause?.actor ?? own;
+    const owners = new Set([run.entityId, actor.entityId]);
     actions.forEach((action, index) => {
       added.push(actionItem(hass, run, actor, action, index, useColor));
       // "Kitchen speaker started playing" is implied by what it said.
@@ -91,7 +89,7 @@ export function convertRuns(
           other !== run &&
           other.entityId &&
           action.speakers.includes(other.entityId) &&
-          other.cause?.actor?.entityId === run.entityId &&
+          owners.has(other.cause?.actor?.entityId) &&
           Math.abs(other.when - run.when) <= WINDOW_MS
         ) {
           hidden.add(other);

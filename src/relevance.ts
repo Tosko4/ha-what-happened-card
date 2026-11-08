@@ -1,16 +1,21 @@
 import type { HomeAssistant, LogbookEntry, WhatHappenedConfig } from "./types";
 
 /**
- * What counts as "something that happened" for a person looking at a dashboard: things
- * that were switched, opened, locked, armed, started or that people did and arrived.
- * Clocks, text and number sensors, update entities and the internal runs of automations
- * are not, so by default the card leaves them out (`activity: everything` shows them).
+ * What counts as "something that happened" for a person looking at a dashboard: things that
+ * were switched, opened, locked, armed or started, and people arriving or leaving.
  *
- * Automation and script runs are different: most are plumbing (a helper toggled, a summary
- * refreshed), but some say something or send a message, which leaves no state change. Those
- * are turned into entries of their own once the run's actions are known (see timeline.ts).
+ * A real installation logs far more than that. Going through a live log, the noise is:
+ *  - clocks, text and number sensors, battery and signal values, update entities;
+ *  - helpers (input_boolean, input_select, ...) that automations flip as plumbing;
+ *  - button entities pressed by nobody in particular, and a device_tracker next to every person;
+ *  - the "echo" after Home Assistant starts, when dozens of entities restore their state;
+ *  - the same action split over several entities (a script, a speaker, a status LED, ...).
+ *
+ * `activity: everything` turns all of this filtering off.
  */
-export const MEANINGFUL_DOMAINS = new Set([
+
+/** Things people care about whoever or whatever caused them. */
+const CORE_DOMAINS = new Set([
   "light",
   "switch",
   "fan",
@@ -26,20 +31,27 @@ export const MEANINGFUL_DOMAINS = new Set([
   "vacuum",
   "lawn_mower",
   "person",
-  "device_tracker",
   "scene",
-  "input_boolean",
-  "button",
-  "input_button",
-  "doorbell",
   "event",
+  "doorbell",
+  "homeassistant",
+]);
+
+/** Helper-like entities: worth a line only when a person did it (an automation flipping a helper is plumbing). */
+const PERSON_ONLY_DOMAINS = new Set([
+  "input_boolean",
+  "input_select",
+  "input_number",
+  "input_text",
+  "input_datetime",
+  "input_button",
+  "button",
+  "counter",
   "timer",
-  "remote",
   "group",
-  "binary_sensor",
+  "remote",
   "automation",
   "script",
-  "homeassistant",
 ]);
 
 /** Binary sensors that report something happening, as opposed to plumbing. */
@@ -65,12 +77,26 @@ const MEANINGFUL_BINARY_CLASSES = new Set([
   "plug",
 ]);
 
+/** Domains that keep their meaning right after a restart. */
+export const RESTART_EXEMPT_DOMAINS = new Set(["person", "homeassistant"]);
+
 export function isRunEntry(entry: LogbookEntry): boolean {
   const domain = entry.domain ?? entry.entity_id?.split(".")[0];
   return (
     (domain === "automation" || domain === "script") &&
     entry.state === undefined &&
     entry.message !== undefined
+  );
+}
+
+/** Something other than the entity itself is on record as the cause. */
+export function hasKnownCause(entry: LogbookEntry): boolean {
+  return Boolean(
+    entry.context_user_id ||
+    entry.context_event_type ||
+    entry.context_entity_id ||
+    entry.context_name ||
+    entry.context_service,
   );
 }
 
@@ -85,10 +111,12 @@ export function isMeaningful(
   if (config.include_domains?.length) return true; // the user chose domains explicitly
 
   if (isRunEntry(entry)) return true; // decided later, once the run's actions are known
-  if (!MEANINGFUL_DOMAINS.has(domain)) return false;
-  if (domain === "binary_sensor" && entry.entity_id) {
-    const deviceClass = hass?.states[entry.entity_id]?.attributes.device_class;
-    return !deviceClass || MEANINGFUL_BINARY_CLASSES.has(deviceClass);
+  if (PERSON_ONLY_DOMAINS.has(domain)) return Boolean(entry.context_user_id);
+  if (domain === "binary_sensor") {
+    const deviceClass = entry.entity_id && hass?.states[entry.entity_id]?.attributes.device_class;
+    // A binary sensor with no device class says nothing about what it is: believe it only when
+    // something known caused it.
+    return deviceClass ? MEANINGFUL_BINARY_CLASSES.has(deviceClass) : hasKnownCause(entry);
   }
-  return true;
+  return CORE_DOMAINS.has(domain);
 }

@@ -82,7 +82,14 @@ The card works out what is worth showing, so you do not have to pick entities by
 
 **Shows things that happened:** lights, switches, locks, covers, doors and windows, motion, alarm, media players, vacuums, climate, scenes and people arriving or leaving, each with who or what caused it.
 
-**Leaves out by default:** clocks, text and number sensors, update entities, diagnostic / configuration / hidden entities, and a run that only repeats something already shown. A run is folded into what it did: "Living room light was turned on by Motion light, triggered by Hallway motion detected motion".
+**Leaves out by default** (tested against the log of a real house, ~500 lines an hour became a handful):
+
+- clocks, text and number sensors, battery and signal values, update entities;
+- diagnostic, configuration and hidden entities;
+- helpers (`input_boolean`, `input_select`, …) and buttons, unless a person used them. An automation flipping a helper is plumbing;
+- the `device_tracker` next to every person, and a binary sensor with no device class and no known cause;
+- the **restart echo**: dozens of entities restoring their state with no cause right after Home Assistant starts, and the "stopped" half of a restart;
+- the same action split over many entities: a script, the speaker, a status LED and a text sensor that all changed because of one automation become a single entry.
 
 - `activity: everything` shows all of it again. Picking an entity by name in `target`, or domains in `include_domains`, always shows them.
 - **Automations and scripts:** most runs are plumbing ("AI summaries was triggered", a helper toggled), so they are not listed. When a run switched something, the change is shown with "by <automation>, triggered by …". When a run said something on a speaker or sent a notification, that becomes its own entry, in the same shape as everything else: `Kitchen speaker said “Someone is at the front door”`, `by Announce visitor, triggered by Front door was opened`. `automation_runs: all` lists every run, `none` hides runs and what they said.

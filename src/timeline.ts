@@ -3,7 +3,7 @@ import { ACTOR_ICONS, fallbackIcon, stateColor } from "./appearance";
 import { convertRuns } from "./runs";
 import type { ActionEvent } from "./trace";
 import { REPLACED_STATES, REPLACE_WINDOW_MS } from "./vacuum";
-import { isMeaningful } from "./relevance";
+import { RESTART_EXEMPT_DOMAINS, hasKnownCause, isMeaningful, isRunEntry } from "./relevance";
 import { groupBursts, summarizeChatty } from "./noise";
 import { dayKey, formatDayLabel } from "./format";
 import { describeState } from "./state-message";
@@ -147,8 +147,7 @@ function toItem(
     stateValue: entry.state,
     picture,
     isPerson,
-    isRun:
-      entry.state === undefined && entry.message !== undefined && /^triggered/.test(entry.message),
+    isRun: isRunEntry(entry),
     cause,
     count: 1,
     accent: stateColor(domain, stateObj?.attributes.device_class, entry.state, tone, useColor),
@@ -241,12 +240,33 @@ export function buildTimeline(
   );
   const standIns = extra ? { items: richItems, vacuums: extra.vacuums } : undefined;
 
-  const sorted = [...entries]
+  const list = [...entries];
+  const restarts = list
+    .filter((e) => e.domain === "homeassistant" && e.message === "started")
+    .map((e) => e.when);
+  const restartNoise = (e: LogbookEntry): boolean => {
+    if ((config.activity ?? DEFAULTS.activity) !== "meaningful") return false;
+    if (e.domain === "homeassistant") {
+      // "stopped" is only the first half of "restarted".
+      return e.message === "stopped" && restarts.some((t) => t >= e.when && t - e.when <= 900);
+    }
+    if (
+      hasKnownCause(e) ||
+      RESTART_EXEMPT_DOMAINS.has(e.domain ?? e.entity_id?.split(".")[0] ?? "")
+    ) {
+      return false;
+    }
+    // Right after Home Assistant starts, dozens of entities restore their state with no cause.
+    return restarts.some((t) => e.when >= t - 30 && e.when <= t + 180);
+  };
+
+  const sorted = list
     .filter((e) => {
       const ms = e.when * 1000;
       return ms >= since && ms <= now + FUTURE_TOLERANCE_MS;
     })
     .filter((e) => passesFilters(e, config, allowed, hass))
+    .filter((e) => !restartNoise(e))
     .filter((e) => !isStandIn(e, standIns))
     .sort((a, b) => b.when - a.when);
 
