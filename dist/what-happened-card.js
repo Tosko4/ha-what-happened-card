@@ -3,10 +3,10 @@
  * Copyright 2019 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const X = globalThis, ce = X.ShadowRoot && (X.ShadyCSS === void 0 || X.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, le = Symbol(), $e = /* @__PURE__ */ new WeakMap();
+const X = globalThis, ce = X.ShadowRoot && (X.ShadyCSS === void 0 || X.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, de = Symbol(), $e = /* @__PURE__ */ new WeakMap();
 let Je = class {
   constructor(e, n, i) {
-    if (this._$cssResult$ = !0, i !== le) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
+    if (this._$cssResult$ = !0, i !== de) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
     this.cssText = e, this.t = n;
   }
   get styleSheet() {
@@ -22,13 +22,13 @@ let Je = class {
     return this.cssText;
   }
 };
-const $t = (t) => new Je(typeof t == "string" ? t : t + "", void 0, le), Xe = (t, ...e) => {
+const $t = (t) => new Je(typeof t == "string" ? t : t + "", void 0, de), Xe = (t, ...e) => {
   const n = t.length === 1 ? t[0] : e.reduce((i, s, o) => i + ((r) => {
     if (r._$cssResult$ === !0) return r.cssText;
     if (typeof r == "number") return r;
     throw Error("Value passed to 'css' function must be a 'css' function result: " + r + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
   })(s) + t[o + 1], t[0]);
-  return new Je(n, t, le);
+  return new Je(n, t, de);
 }, xt = (t, e) => {
   if (ce) t.adoptedStyleSheets = e.map((n) => n instanceof CSSStyleSheet ? n : n.styleSheet);
   else for (const n of e) {
@@ -73,7 +73,7 @@ const { is: kt, defineProperty: At, getOwnPropertyDescriptor: St, getOwnProperty
       }
   }
   return n;
-} }, de = (t, e) => !kt(t, e), Ae = { attribute: !0, type: String, converter: Z, reflect: !1, useDefault: !1, hasChanged: de };
+} }, le = (t, e) => !kt(t, e), Ae = { attribute: !0, type: String, converter: Z, reflect: !1, useDefault: !1, hasChanged: le };
 Symbol.metadata ??= Symbol("metadata"), ee.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
 let T = class extends HTMLElement {
   static addInitializer(e) {
@@ -188,7 +188,7 @@ let T = class extends HTMLElement {
   requestUpdate(e, n, i, s = !1, o) {
     if (e !== void 0) {
       const r = this.constructor;
-      if (s === !1 && (o = this[e]), i ??= r.getPropertyOptions(e), !((i.hasChanged ?? de)(o, n) || i.useDefault && i.reflect && o === this._$Ej?.get(e) && !this.hasAttribute(r._$Eu(e, i)))) return;
+      if (s === !1 && (o = this[e]), i ??= r.getPropertyOptions(e), !((i.hasChanged ?? le)(o, n) || i.useDefault && i.reflect && o === this._$Ej?.get(e) && !this.hasAttribute(r._$Eu(e, i)))) return;
       this.C(e, n, i);
     }
     this.isUpdatePending === !1 && (this._$ES = this._$EP());
@@ -264,7 +264,7 @@ T.elementStyles = [], T.shadowRootOptions = { mode: "open" }, T[B("elementProper
  */
 const ue = globalThis, Se = (t) => t, Q = ue.trustedTypes, Ee = Q ? Q.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, Ze = "$lit$", x = `lit$${Math.random().toFixed(9).slice(2)}$`, Qe = "?" + x, Mt = `<${Qe}>`, C = document, V = () => C.createComment(""), F = (t) => t === null || typeof t != "object" && typeof t != "function", he = Array.isArray, Rt = (t) => he(t) || typeof t?.[Symbol.iterator] == "function", ie = `[ 	
 \f\r]`, L = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Ie = /-->/g, Ce = />/g, S = RegExp(`>|${ie}(?:([^\\s"'>=/]+)(${ie}*=${ie}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`, "g"), Te = /'/g, Oe = /"/g, et = /^(?:script|style|textarea|title)$/i, Pt = (t) => (e, ...n) => ({ _$litType$: t, strings: e, values: n }), g = Pt(1), k = Symbol.for("lit-noChange"), _ = Symbol.for("lit-nothing"), Me = /* @__PURE__ */ new WeakMap(), E = C.createTreeWalker(C, 129);
+\f\r"'\`<>=]|("|')|))|$)`, "g"), Te = /'/g, Oe = /"/g, et = /^(?:script|style|textarea|title)$/i, Pt = (t) => (e, ...n) => ({ _$litType$: t, strings: e, values: n }), v = Pt(1), k = Symbol.for("lit-noChange"), _ = Symbol.for("lit-nothing"), Me = /* @__PURE__ */ new WeakMap(), E = C.createTreeWalker(C, 129);
 function tt(t, e) {
   if (!he(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
   return Ee !== void 0 ? Ee.createHTML(e) : e;
@@ -274,10 +274,10 @@ const Nt = (t, e) => {
   let s, o = e === 2 ? "<svg>" : e === 3 ? "<math>" : "", r = L;
   for (let a = 0; a < n; a++) {
     const c = t[a];
-    let l, u, h = -1, v = 0;
-    for (; v < c.length && (r.lastIndex = v, u = r.exec(c), u !== null); ) v = r.lastIndex, r === L ? u[1] === "!--" ? r = Ie : u[1] !== void 0 ? r = Ce : u[2] !== void 0 ? (et.test(u[2]) && (s = RegExp("</" + u[2], "g")), r = S) : u[3] !== void 0 && (r = S) : r === S ? u[0] === ">" ? (r = s ?? L, h = -1) : u[1] === void 0 ? h = -2 : (h = r.lastIndex - u[2].length, l = u[1], r = u[3] === void 0 ? S : u[3] === '"' ? Oe : Te) : r === Oe || r === Te ? r = S : r === Ie || r === Ce ? r = L : (r = S, s = void 0);
-    const d = r === S && t[a + 1].startsWith("/>") ? " " : "";
-    o += r === L ? c + Mt : h >= 0 ? (i.push(l), c.slice(0, h) + Ze + c.slice(h) + x + d) : c + x + (h === -2 ? a : d);
+    let d, l, h = -1, g = 0;
+    for (; g < c.length && (r.lastIndex = g, l = r.exec(c), l !== null); ) g = r.lastIndex, r === L ? l[1] === "!--" ? r = Ie : l[1] !== void 0 ? r = Ce : l[2] !== void 0 ? (et.test(l[2]) && (s = RegExp("</" + l[2], "g")), r = S) : l[3] !== void 0 && (r = S) : r === S ? l[0] === ">" ? (r = s ?? L, h = -1) : l[1] === void 0 ? h = -2 : (h = r.lastIndex - l[2].length, d = l[1], r = l[3] === void 0 ? S : l[3] === '"' ? Oe : Te) : r === Oe || r === Te ? r = S : r === Ie || r === Ce ? r = L : (r = S, s = void 0);
+    const u = r === S && t[a + 1].startsWith("/>") ? " " : "";
+    o += r === L ? c + Mt : h >= 0 ? (i.push(d), c.slice(0, h) + Ze + c.slice(h) + x + u) : c + x + (h === -2 ? a : u);
   }
   return [tt(t, o + (t[n] || "<?>") + (e === 2 ? "</svg>" : e === 3 ? "</math>" : "")), i];
 };
@@ -286,23 +286,23 @@ class K {
     let s;
     this.parts = [];
     let o = 0, r = 0;
-    const a = e.length - 1, c = this.parts, [l, u] = Nt(e, n);
-    if (this.el = K.createElement(l, i), E.currentNode = this.el.content, n === 2 || n === 3) {
+    const a = e.length - 1, c = this.parts, [d, l] = Nt(e, n);
+    if (this.el = K.createElement(d, i), E.currentNode = this.el.content, n === 2 || n === 3) {
       const h = this.el.content.firstChild;
       h.replaceWith(...h.childNodes);
     }
     for (; (s = E.nextNode()) !== null && c.length < a; ) {
       if (s.nodeType === 1) {
         if (s.hasAttributes()) for (const h of s.getAttributeNames()) if (h.endsWith(Ze)) {
-          const v = u[r++], d = s.getAttribute(h).split(x), f = /([.?@])?(.*)/.exec(v);
-          c.push({ type: 1, index: o, name: f[2], strings: d, ctor: f[1] === "." ? Ut : f[1] === "?" ? Ht : f[1] === "@" ? jt : te }), s.removeAttribute(h);
+          const g = l[r++], u = s.getAttribute(h).split(x), f = /([.?@])?(.*)/.exec(g);
+          c.push({ type: 1, index: o, name: f[2], strings: u, ctor: f[1] === "." ? Ut : f[1] === "?" ? Ht : f[1] === "@" ? jt : te }), s.removeAttribute(h);
         } else h.startsWith(x) && (c.push({ type: 6, index: o }), s.removeAttribute(h));
         if (et.test(s.tagName)) {
-          const h = s.textContent.split(x), v = h.length - 1;
-          if (v > 0) {
+          const h = s.textContent.split(x), g = h.length - 1;
+          if (g > 0) {
             s.textContent = Q ? Q.emptyScript : "";
-            for (let d = 0; d < v; d++) s.append(h[d], V()), E.nextNode(), c.push({ type: 2, index: ++o });
-            s.append(h[v], V());
+            for (let u = 0; u < g; u++) s.append(h[u], V()), E.nextNode(), c.push({ type: 2, index: ++o });
+            s.append(h[g], V());
           }
         }
       } else if (s.nodeType === 8) if (s.data === Qe) c.push({ type: 2, index: o });
@@ -340,8 +340,8 @@ class Dt {
     let o = E.nextNode(), r = 0, a = 0, c = i[0];
     for (; c !== void 0; ) {
       if (r === c.index) {
-        let l;
-        c.type === 2 ? l = new Y(o, o.nextSibling, this, e) : c.type === 1 ? l = new c.ctor(o, c.name, c.strings, this, e) : c.type === 6 && (l = new zt(o, this, e)), this._$AV.push(l), c = i[++a];
+        let d;
+        c.type === 2 ? d = new Y(o, o.nextSibling, this, e) : c.type === 1 ? d = new c.ctor(o, c.name, c.strings, this, e) : c.type === 6 && (d = new zt(o, this, e)), this._$AV.push(d), c = i[++a];
       }
       r !== c?.index && (o = E.nextNode(), r++);
     }
@@ -427,8 +427,8 @@ class te {
     if (o === void 0) e = P(this, e, n, 0), r = !F(e) || e !== this._$AH && e !== k, r && (this._$AH = e);
     else {
       const a = e;
-      let c, l;
-      for (e = o[0], c = 0; c < o.length - 1; c++) l = P(this, a[i + c], n, c), l === k && (l = this._$AH[c]), r ||= !F(l) || l !== this._$AH[c], l === _ ? e = _ : e !== _ && (e += (l ?? "") + o[c + 1]), this._$AH[c] = l;
+      let c, d;
+      for (e = o[0], c = 0; c < o.length - 1; c++) d = P(this, a[i + c], n, c), d === k && (d = this._$AH[c]), r ||= !F(d) || d !== this._$AH[c], d === _ ? e = _ : e !== _ && (e += (d ?? "") + o[c + 1]), this._$AH[c] = d;
     }
     r && !s && this.j(e);
   }
@@ -534,7 +534,7 @@ const nt = (t) => (e, n) => {
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const Vt = { attribute: !0, type: String, converter: Z, reflect: !1, hasChanged: de }, Ft = (t = Vt, e, n) => {
+const Vt = { attribute: !0, type: String, converter: Z, reflect: !1, hasChanged: le }, Ft = (t = Vt, e, n) => {
   const { kind: i, metadata: s } = n;
   let o = globalThis.litPropertyMetadata.get(s);
   if (o === void 0 && globalThis.litPropertyMetadata.set(s, o = /* @__PURE__ */ new Map()), i === "setter" && ((t = Object.create(t)).wrapped = !0), o.set(n.name, t), i === "accessor") {
@@ -719,8 +719,8 @@ function nn(t, e, n = /* @__PURE__ */ new Set()) {
   const i = /* @__PURE__ */ new Map();
   for (const a of t) {
     if (a.rich || a.entityId && n.has(a.entityId)) continue;
-    const c = Pe(a), l = i.get(c);
-    l ? l.push(a) : i.set(c, [a]);
+    const c = Pe(a), d = i.get(c);
+    d ? d.push(a) : i.set(c, [a]);
   }
   const s = /* @__PURE__ */ new Set();
   for (const [a, c] of i) {
@@ -737,11 +737,11 @@ function nn(t, e, n = /* @__PURE__ */ new Set()) {
     }
     if (r.has(c) || e === "hide") continue;
     r.add(c);
-    const l = i.get(c).length;
+    const d = i.get(c).length;
     o.push({
       ...a,
       key: `chatty|${c}`,
-      verb: a.isRun ? `was triggered ${l} times` : `changed ${l} times`,
+      verb: a.isRun ? `was triggered ${d} times` : `changed ${d} times`,
       details: a.isRun ? void 0 : [`latest: ${me(a.verb, 70)}`],
       isRun: !1,
       count: 1,
@@ -777,45 +777,45 @@ function rn(t) {
 function an(t, e) {
   return (t.cause?.actor?.name ?? "") === (e.cause?.actor?.name ?? "") && (t.cause?.trigger ?? "") === (e.cause?.trigger ?? "");
 }
-function cn(t) {
-  const e = /* @__PURE__ */ new Map(), n = [];
-  for (const s of t) {
-    if (s.rich || !s.entityId) continue;
-    const o = `${s.domain}|${s.verb}|${s.tone}`, r = e.get(o);
-    if (r && r.oldest - s.when <= en)
-      r.members.push(s), r.oldest = s.when;
+function cn(t, e = /* @__PURE__ */ new Set()) {
+  const n = /* @__PURE__ */ new Map(), i = [];
+  for (const o of t) {
+    if (o.rich || !o.entityId || e.has(o.entityId)) continue;
+    const r = `${o.domain}|${o.verb}|${o.tone}`, a = n.get(r);
+    if (a && a.oldest - o.when <= en)
+      a.members.push(o), a.oldest = o.when;
     else {
-      const a = { members: [s], oldest: s.when };
-      e.set(o, a), n.push(a);
+      const c = { members: [o], oldest: o.when };
+      n.set(r, c), i.push(c);
     }
   }
-  const i = /* @__PURE__ */ new Map();
-  for (const { members: s } of n) {
-    const o = new Set(s.map((l) => l.entityId));
-    if (o.size < tn) continue;
-    const r = s[0], a = [...new Set(s.map((l) => l.name))], c = a.slice(0, 6).join(", ");
-    i.set(r, {
-      ...r,
-      key: `burst|${r.key}`,
+  const s = /* @__PURE__ */ new Map();
+  for (const { members: o } of i) {
+    const r = new Set(o.map((l) => l.entityId));
+    if (r.size < tn) continue;
+    const a = o[0], c = [...new Set(o.map((l) => l.name))], d = c.slice(0, 6).join(", ");
+    s.set(a, {
+      ...a,
+      key: `burst|${a.key}`,
       entityId: void 0,
-      name: `${o.size} ${on(r.domain)}`,
-      verb: rn(r.verb),
-      details: [a.length > 6 ? `${c} and ${a.length - 6} more` : c],
-      cause: s.every((l) => an(l, r)) ? r.cause : void 0,
+      name: `${r.size} ${on(a.domain)}`,
+      verb: rn(a.verb),
+      details: [c.length > 6 ? `${d} and ${c.length - 6} more` : d],
+      cause: o.every((l) => an(l, a)) ? a.cause : void 0,
       count: 1,
       stateValue: void 0,
       rich: !0
     });
-    for (const l of s.slice(1)) i.set(l, null);
+    for (const l of o.slice(1)) s.set(l, null);
   }
-  return i.size === 0 ? t : t.flatMap((s) => {
-    if (!i.has(s)) return [s];
-    const o = i.get(s);
-    return o ? [o] : [];
+  return s.size === 0 ? t : t.flatMap((o) => {
+    if (!s.has(o)) return [o];
+    const r = s.get(o);
+    return r ? [r] : [];
   });
 }
-const ln = 3e4;
-function dn(t, e, n = /* @__PURE__ */ new Set()) {
+const dn = 3e4;
+function ln(t, e, n = /* @__PURE__ */ new Set()) {
   const i = /* @__PURE__ */ new Set();
   for (const s of e) {
     if (s.rich || !s.entityId) continue;
@@ -823,7 +823,7 @@ function dn(t, e, n = /* @__PURE__ */ new Set()) {
     if (!Array.isArray(o) || o.length === 0) continue;
     const r = new Set(o.filter((a) => typeof a == "string"));
     for (const a of e)
-      a !== s && !a.rich && a.entityId && !n.has(a.entityId) && r.has(a.entityId) && a.verb === s.verb && Math.abs(a.when - s.when) <= ln && i.add(a);
+      a !== s && !a.rich && a.entityId && !n.has(a.entityId) && r.has(a.entityId) && a.verb === s.verb && Math.abs(a.when - s.when) <= dn && i.add(a);
   }
   return i.size ? e.filter((s) => !i.has(s)) : e;
 }
@@ -845,12 +845,12 @@ function hn(t) {
         if (!a) continue;
         const c = `${o.domain}.${o.service}`;
         if (o.domain === "tts") {
-          const l = [
+          const d = [
             ...se(r.media_player_entity_id),
             ...se(r.entity_id),
             ...se(o.target?.entity_id)
-          ].filter((u) => u.startsWith("media_player."));
-          e.push({ kind: "say", text: a, speakers: [...new Set(l)], service: c });
+          ].filter((l) => l.startsWith("media_player."));
+          e.push({ kind: "say", text: a, speakers: [...new Set(d)], service: c });
         } else (o.domain === "notify" || o.domain === "persistent_notification") && e.push({
           kind: "notify",
           text: a,
@@ -898,31 +898,31 @@ class mn {
     if (!s) return;
     const o = `${s.domain}|${s.itemId}`, r = this.lists.get(o), a = r && oe(r.runs, n, i);
     if (a && this.details.has(`${o}|${a.run_id}`)) return;
-    const c = `${o}|${a?.run_id ?? Math.floor(n / 6e4)}`, l = this.tried.get(c);
-    if (l && Date.now() - l < fn) return;
-    const u = this.inflight.get(c);
-    if (u) return u;
+    const c = `${o}|${a?.run_id ?? Math.floor(n / 6e4)}`, d = this.tried.get(c);
+    if (d && Date.now() - d < fn) return;
+    const l = this.inflight.get(c);
+    if (l) return l;
     const h = (async () => {
       this.tried.set(c, Date.now());
       try {
-        let v = this.lists.get(o);
-        if (!v || Date.now() - v.at > pn) {
+        let g = this.lists.get(o);
+        if (!g || Date.now() - g.at > pn) {
           const f = await this.hass.callWS({
             type: "trace/list",
             domain: s.domain,
             item_id: s.itemId
           });
-          v = { at: Date.now(), runs: Array.isArray(f) ? f : [] }, this.lists.set(o, v);
+          g = { at: Date.now(), runs: Array.isArray(f) ? f : [] }, this.lists.set(o, g);
         }
-        const d = oe(v.runs, n, i);
-        if (d && !this.details.has(`${o}|${d.run_id}`)) {
+        const u = oe(g.runs, n, i);
+        if (u && !this.details.has(`${o}|${u.run_id}`)) {
           const f = await this.hass.callWS({
             type: "trace/get",
             domain: s.domain,
             item_id: s.itemId,
-            run_id: d.run_id
+            run_id: u.run_id
           });
-          this.details.set(`${o}|${d.run_id}`, f);
+          this.details.set(`${o}|${u.run_id}`, f);
         }
       } catch {
       } finally {
@@ -974,7 +974,7 @@ const De = "var(--error-color)", vn = "tapo_rv30", Ue = {
 }, yn = {
   cleaning: "start",
   docked: "finish"
-}, bn = 10 * 60 * 1e3, wn = /* @__PURE__ */ new Set(["start", "done", "override", "return", "docked", "skip", "error"]), lt = 300;
+}, bn = 10 * 60 * 1e3, wn = /* @__PURE__ */ new Set(["start", "done", "override", "return", "docked", "skip", "error"]), dt = 300;
 function $n(t) {
   return Object.values(t.entities ?? {}).filter((e) => e.platform === vn && e.entity_id.startsWith("vacuum.")).map((e) => e.entity_id);
 }
@@ -987,7 +987,7 @@ function xn(t, e, n) {
   for (const s of t) {
     if (s.kind !== "start" || n.has(s)) continue;
     const o = Math.abs(s.ts - e);
-    o <= lt && (!i || o < Math.abs(i.ts - e)) && (i = s);
+    o <= dt && (!i || o < Math.abs(i.ts - e)) && (i = s);
   }
   return i;
 }
@@ -1027,73 +1027,73 @@ function En(t, e, n) {
     rich: !0,
     fixedIcon: !0
   };
-  for (const d of e.runs) {
-    const f = xn(e.log, d.started, a);
+  for (const u of e.runs) {
+    const f = xn(e.log, u.started, a);
     f && a.add(f);
-    const m = f ? He(f.text) : void 0, y = !!d.error;
+    const y = f ? He(f.text) : void 0, m = !!u.error;
     let $;
-    f && m ? $ = { actor: m.byUser ? ze(t) : je(), trigger: m.why } : d.start_type != null && Ue[d.start_type] && ($ = {
-      actor: { kind: "other", name: Ue[d.start_type], icon: "mdi:gesture-tap" }
+    f && y ? $ = { actor: y.byUser ? ze(t) : je(), trigger: y.why } : u.start_type != null && Ue[u.start_type] && ($ = {
+      actor: { kind: "other", name: Ue[u.start_type], icon: "mdi:gesture-tap" }
     }), r.push({
       ...c,
-      key: `vac|${e.entityId}|start|${d.started}`,
-      when: d.started * 1e3,
-      verb: m?.names ? `started cleaning ${m.names}` : "started cleaning",
+      key: `vac|${e.entityId}|start|${u.started}`,
+      when: u.started * 1e3,
+      verb: y?.names ? `started cleaning ${y.names}` : "started cleaning",
       tone: "active",
       phase: "start",
       icon: "mdi:robot-vacuum",
-      details: d.rule_name ? [`preset “${d.rule_name}”`] : void 0,
+      details: u.rule_name ? [`preset “${u.rule_name}”`] : void 0,
       cause: $,
       accent: I("vacuum", void 0, "cleaning", "active", o)
     });
-    const H = (d.started + (d.minutes ?? 0) * 60) * 1e3;
+    const H = (u.started + (u.minutes ?? 0) * 60) * 1e3;
     r.push({
       ...c,
-      key: `vac|${e.entityId}|finish|${d.started}`,
-      when: Math.max(H, d.started * 1e3 + 1e3),
-      verb: y ? `stopped with error ${d.error}` : m?.names ? `finished cleaning ${m.names}` : "finished cleaning",
-      tone: y ? "alert" : "inactive",
+      key: `vac|${e.entityId}|finish|${u.started}`,
+      when: Math.max(H, u.started * 1e3 + 1e3),
+      verb: m ? `stopped with error ${u.error}` : y?.names ? `finished cleaning ${y.names}` : "finished cleaning",
+      tone: m ? "alert" : "inactive",
       phase: "finish",
-      icon: y ? "mdi:robot-vacuum-alert" : "mdi:robot-vacuum",
-      details: Sn(d),
-      accent: y ? De : I("vacuum", void 0, "docked", "inactive", o)
+      icon: m ? "mdi:robot-vacuum-alert" : "mdi:robot-vacuum",
+      details: Sn(u),
+      accent: m ? De : I("vacuum", void 0, "docked", "inactive", o)
     });
   }
-  const l = e.log.filter((d) => d.kind === "return"), u = /* @__PURE__ */ new Map(), h = /* @__PURE__ */ new Set();
-  for (const d of e.log.filter((f) => f.kind === "docked")) {
-    const f = l.find(
-      (m) => !h.has(m) && m.ts <= d.ts && d.ts - m.ts <= 1800
+  const d = e.log.filter((u) => u.kind === "return"), l = /* @__PURE__ */ new Map(), h = /* @__PURE__ */ new Set();
+  for (const u of e.log.filter((f) => f.kind === "docked")) {
+    const f = d.find(
+      (y) => !h.has(y) && y.ts <= u.ts && u.ts - y.ts <= 1800
     );
-    f && (u.set(d, f), h.add(f));
+    f && (l.set(u, f), h.add(f));
   }
-  const v = new Set(e.runs.map((d) => d.started));
-  for (const d of e.log) {
-    if (!wn.has(d.kind) || a.has(d) || d.kind === "done" && e.runs.length > 0 || d.kind === "start" && [...v].some((H) => Math.abs(H - d.ts) <= lt) || h.has(d)) continue;
-    const f = d.kind === "start" ? He(d.text) : void 0, m = d.kind === "docked" ? u.get(d) : void 0, y = m ? kn(m.text) : void 0;
-    if (y) {
+  const g = new Set(e.runs.map((u) => u.started));
+  for (const u of e.log) {
+    if (!wn.has(u.kind) || a.has(u) || u.kind === "done" && e.runs.length > 0 || u.kind === "start" && [...g].some((H) => Math.abs(H - u.ts) <= dt) || h.has(u)) continue;
+    const f = u.kind === "start" ? He(u.text) : void 0, y = u.kind === "docked" ? l.get(u) : void 0, m = y ? kn(y.text) : void 0;
+    if (m) {
       r.push({
         ...c,
-        key: `vac|${e.entityId}|log|${d.ts}|docked`,
-        when: d.ts * 1e3,
+        key: `vac|${e.entityId}|log|${u.ts}|docked`,
+        when: u.ts * 1e3,
         verb: "was sent home",
         tone: "neutral",
         icon: "mdi:robot-vacuum",
-        details: [y.note.charAt(0).toUpperCase() + y.note.slice(1)],
-        cause: { actor: An(t, y.people), trigger: "coming home" },
+        details: [m.note.charAt(0).toUpperCase() + m.note.slice(1)],
+        cause: { actor: An(t, m.people), trigger: "coming home" },
         accent: I("vacuum", void 0, "docked", "inactive", o)
       });
       continue;
     }
-    const $ = d.kind === "error" ? "alert" : d.kind === "start" ? "active" : "neutral";
+    const $ = u.kind === "error" ? "alert" : u.kind === "start" ? "active" : "neutral";
     r.push({
       ...c,
-      key: `vac|${e.entityId}|log|${d.ts}|${d.kind}`,
-      when: d.ts * 1e3,
+      key: `vac|${e.entityId}|log|${u.ts}|${u.kind}`,
+      when: u.ts * 1e3,
       verb: f?.names ? `started cleaning ${f.names}` : "",
-      text: f?.names ? void 0 : d.text.replace(/\.$/, ""),
+      text: f?.names ? void 0 : u.text.replace(/\.$/, ""),
       tone: $,
-      phase: d.kind === "start" ? "start" : d.kind === "done" ? "finish" : void 0,
-      icon: d.kind === "error" ? "mdi:robot-vacuum-alert" : "mdi:robot-vacuum",
+      phase: u.kind === "start" ? "start" : u.kind === "done" ? "finish" : void 0,
+      icon: u.kind === "error" ? "mdi:robot-vacuum-alert" : "mdi:robot-vacuum",
       cause: { actor: f?.byUser ? ze(t) : je(), trigger: f?.why },
       accent: $ === "alert" ? De : I(
         "vacuum",
@@ -1442,16 +1442,16 @@ function O(t) {
 function Cn(t) {
   return t ? Object.values(t).some((e) => O(e).length > 0) : !1;
 }
-function dt(t, e) {
+function lt(t, e) {
   const n = /* @__PURE__ */ new Set(), i = t.entities ?? {}, s = t.devices ?? {}, o = t.areas ?? {}, r = new Set(O(e.area_id));
-  for (const l of O(e.floor_id))
-    for (const u of Object.values(o))
-      u.floor_id === l && r.add(u.area_id);
+  for (const d of O(e.floor_id))
+    for (const l of Object.values(o))
+      l.floor_id === d && r.add(l.area_id);
   const a = new Set(O(e.device_id)), c = new Set(O(e.label_id));
-  for (const l of O(e.entity_id)) n.add(l);
-  for (const l of Object.values(i)) {
-    const u = l.device_id ? s[l.device_id] : void 0, h = l.area_id ?? u?.area_id ?? void 0;
-    h && r.has(h) && n.add(l.entity_id), l.device_id && a.has(l.device_id) && n.add(l.entity_id), l.labels?.some((v) => c.has(v)) && n.add(l.entity_id), u?.labels?.some((v) => c.has(v)) && n.add(l.entity_id);
+  for (const d of O(e.entity_id)) n.add(d);
+  for (const d of Object.values(i)) {
+    const l = d.device_id ? s[d.device_id] : void 0, h = d.area_id ?? l?.area_id ?? void 0;
+    h && r.has(h) && n.add(d.entity_id), d.device_id && a.has(d.device_id) && n.add(d.entity_id), d.labels?.some((g) => c.has(g)) && n.add(d.entity_id), l?.labels?.some((g) => c.has(g)) && n.add(d.entity_id);
   }
   return n;
 }
@@ -1563,11 +1563,11 @@ function zn(t, e, n, i, s, o = /* @__PURE__ */ new Set()) {
   const r = /* @__PURE__ */ new Set(), a = [];
   for (const c of e) {
     if (!c.isRun || c.rich || (n !== "all" && !(c.entityId && o.has(c.entityId)) && r.add(c), n === "none" || !s)) continue;
-    const l = s(c) ?? [], u = c.domain === "script" ? "script" : "automation", h = { kind: u, name: c.name, entityId: c.entityId, icon: _e[u] }, v = c.cause?.actor ?? h, d = /* @__PURE__ */ new Set([c.entityId, v.entityId]);
-    l.forEach((f, m) => {
-      a.push(jn(t, c, v, f, m, i));
-      for (const y of e)
-        y !== c && y.entityId && f.speakers.includes(y.entityId) && d.has(y.cause?.actor?.entityId) && Math.abs(y.when - c.when) <= Un && r.add(y);
+    const d = s(c) ?? [], l = c.domain === "script" ? "script" : "automation", h = { kind: l, name: c.name, entityId: c.entityId, icon: _e[l] }, g = c.cause?.actor ?? h, u = /* @__PURE__ */ new Set([c.entityId, g.entityId]);
+    d.forEach((f, y) => {
+      a.push(jn(t, c, g, f, y, i));
+      for (const m of e)
+        m !== c && m.entityId && f.speakers.includes(m.entityId) && u.has(m.cause?.actor?.entityId) && Math.abs(m.when - c.when) <= Un && r.add(m);
     });
   }
   return [...e.filter((c) => !r.has(c)), ...a];
@@ -1634,7 +1634,7 @@ function q(t, e) {
   if (n && n.entities === e?.entities && n.devices === e?.devices) return n.ids;
   const i = new Set([t.target?.entity_id ?? [], t.also_show_entities ?? []].flat());
   if (e && t.also_show_labels?.length)
-    for (const s of dt(e, { label_id: t.also_show_labels }))
+    for (const s of lt(e, { label_id: t.also_show_labels }))
       i.add(s);
   return We.set(t, { entities: e?.entities, devices: e?.devices, ids: i }), i;
 }
@@ -1728,64 +1728,66 @@ function Zn(t) {
   }
   return n;
 }
-function Qn(t, e) {
-  const n = /* @__PURE__ */ new Map();
-  for (const r of e) {
-    const a = r.cause, c = a?.actor;
-    if (!c?.entityId || c.kind !== "automation" && c.kind !== "script" || r.effects) continue;
-    const l = a?.source ? `source|${a.source.key}` : `run|${c.entityId}|${a?.trigger ?? ""}`, u = n.get(l);
-    u ? u.push(r) : n.set(l, [r]);
+function Qn(t, e, n = /* @__PURE__ */ new Set()) {
+  const i = /* @__PURE__ */ new Map();
+  for (const a of e) {
+    const c = a.cause, d = c?.actor;
+    if (!d?.entityId || d.kind !== "automation" && d.kind !== "script" || a.effects || a.entityId && n.has(a.entityId)) continue;
+    const l = c?.source ? `source|${c.source.key}` : `run|${d.entityId}|${c?.trigger ?? ""}`, h = i.get(l);
+    h ? h.push(a) : i.set(l, [a]);
   }
-  const i = /* @__PURE__ */ new Set(), s = [], o = e.filter((r) => !r.rich && r.cause?.actor?.kind === "service");
-  for (const [, r] of n) {
-    const a = [...r].sort((l, u) => l.when - u.when), c = [];
-    for (const l of a) {
-      const u = c[c.length - 1];
-      u && l.when - u[u.length - 1].when <= qn ? u.push(l) : c.push([l]);
-    }
+  const s = /* @__PURE__ */ new Set(), o = [], r = e.filter(
+    (a) => !a.rich && a.cause?.actor?.kind === "service" && !(a.entityId && n.has(a.entityId))
+  );
+  for (const [, a] of i) {
+    const c = [...a].sort((l, h) => l.when - h.when), d = [];
     for (const l of c) {
-      l.sort((m, y) => m.when - y.when);
-      const u = l.find((m) => m.cause?.source)?.cause?.source;
-      if (l.length < 2 && u?.cause?.actor?.kind !== "user") continue;
-      for (const m of o)
-        !i.has(m) && !l.includes(m) && m.when >= l[0].when - Gn && m.when <= l[l.length - 1].when + Jn && l.push(m);
-      l.sort((m, y) => m.when - y.when);
-      const h = l[0], v = Zn(l), d = l.map(Xn);
-      let f;
-      if (u)
-        f = {
-          ...u,
-          key: `group|${u.key}|${h.key}`,
-          effects: d,
-          via: v,
+      const h = d[d.length - 1];
+      h && l.when - h[h.length - 1].when <= qn ? h.push(l) : d.push([l]);
+    }
+    for (const l of d) {
+      l.sort((m, $) => m.when - $.when);
+      const h = l.find((m) => m.cause?.source)?.cause?.source;
+      if (l.length < 2 && h?.cause?.actor?.kind !== "user") continue;
+      for (const m of r)
+        !s.has(m) && !l.includes(m) && m.when >= l[0].when - Gn && m.when <= l[l.length - 1].when + Jn && l.push(m);
+      l.sort((m, $) => m.when - $.when);
+      const g = l[0], u = Zn(l), f = l.map(Xn);
+      let y;
+      if (h)
+        y = {
+          ...h,
+          key: `group|${h.key}|${g.key}`,
+          effects: f,
+          via: u,
           count: 1,
           rich: !0
         };
       else {
-        const m = v[0], y = m.kind === "script" ? "script" : "automation";
-        f = {
-          key: `group|${h.key}`,
-          when: h.when,
+        const m = u[0], $ = m.kind === "script" ? "script" : "automation";
+        y = {
+          key: `group|${g.key}`,
+          when: g.when,
           entityId: m.entityId,
-          domain: y,
+          domain: $,
           name: m.name,
           verb: "ran",
           tone: "active",
-          icon: _e[y],
+          icon: _e[$],
           isPerson: !1,
           isRun: !1,
           count: 1,
           rich: !0,
-          cause: h.cause?.trigger ? { trigger: h.cause.trigger, triggerEntityId: h.cause.triggerEntityId } : void 0,
-          effects: d,
-          accent: I(y, void 0, "on", "active", !0)
+          cause: g.cause?.trigger ? { trigger: g.cause.trigger, triggerEntityId: g.cause.triggerEntityId } : void 0,
+          effects: f,
+          accent: I($, void 0, "on", "active", !0)
         };
       }
-      for (const m of l) i.add(m);
-      s.push(f);
+      for (const m of l) s.add(m);
+      o.push(y);
     }
   }
-  return i.size ? [...e.filter((r) => !i.has(r)), ...s] : e;
+  return s.size ? [...e.filter((a) => !s.has(a)), ...o] : e;
 }
 const ei = 6e4;
 function ge(t) {
@@ -1942,9 +1944,9 @@ function ci(t, e, n, i) {
   if (si.has(e))
     return i === "home" ? { verb: "arrived home", tone: "active" } : i === "not_home" ? { verb: "left home", tone: "inactive" } : { verb: `arrived at ${ai(t, i)}`, tone: "active" };
   if (e === "binary_sensor" && o && Fe[o]) {
-    const [c, l, u, h] = Fe[o];
-    if (i === "on") return { verb: c, tone: u ?? "active" };
-    if (i === "off") return { verb: l, tone: h ?? "inactive" };
+    const [c, d, l, h] = Fe[o];
+    if (i === "on") return { verb: c, tone: l ?? "active" };
+    if (i === "off") return { verb: d, tone: h ?? "inactive" };
   }
   const r = ni[e]?.[i];
   if (r) return { verb: r[0], tone: r[1] };
@@ -1977,7 +1979,7 @@ const w = {
   chatty: "summarize",
   show_diagnostic: !1,
   collapse_repeats: !0
-}, M = { hours: [1, 720], entries: [1, 500] }, Ke = 60 * 1e3, li = 10 * 60 * 1e3, Ye = 5 * 60 * 1e3;
+}, M = { hours: [1, 720], entries: [1, 500] }, Ke = 60 * 1e3, di = 10 * 60 * 1e3, Ye = 5 * 60 * 1e3;
 function _t(t) {
   return [t.when, t.entity_id ?? t.name, t.state ?? t.message, t.context_id].map((e) => e ?? "").join("|");
 }
@@ -1988,7 +1990,7 @@ function gt(t, [e, n], i) {
 function ae(t) {
   return gt(t.hours_to_show, M.hours, w.hours_to_show);
 }
-function di(t) {
+function li(t) {
   return gt(t.max_entries, M.entries, w.max_entries);
 }
 function vt(t) {
@@ -2008,20 +2010,20 @@ function ui(t, e, n) {
   if (e.state !== void 0 && e.message === void 0)
     ({ verb: r, tone: a } = ci(t, i, e.entity_id, e.state));
   else {
-    const d = e.message ?? "did something";
-    if (d.match(/^triggered(?: by (.+))?$/)) {
+    const u = e.message ?? "did something";
+    if (u.match(/^triggered(?: by (.+))?$/)) {
       r = "was triggered", a = "active";
-      const m = Dn(t, e);
-      if (m) {
-        const y = e.source ?? d.replace(/^triggered by /, "");
-        c = { ...c, trigger: m, triggerEntityId: ht(y) };
+      const y = Dn(t, e);
+      if (y) {
+        const m = e.source ?? u.replace(/^triggered by /, "");
+        c = { ...c, trigger: y, triggerEntityId: ht(m) };
       }
     } else
-      r = d, a = /(error|fail)/i.test(d) ? "alert" : "neutral";
+      r = u, a = /(error|fail)/i.test(u) ? "alert" : "neutral";
   }
-  const l = c?.actor;
-  l && !l.icon && (l.icon = _e[l.kind]);
-  const u = i === "person", h = u ? s?.attributes.entity_picture : void 0, v = n.state_color ?? w.state_color;
+  const d = c?.actor;
+  d && !d.icon && (d.icon = _e[d.kind]);
+  const l = i === "person", h = l ? s?.attributes.entity_picture : void 0, g = n.state_color ?? w.state_color;
   return {
     key: _t(e),
     when: e.when * 1e3,
@@ -2033,11 +2035,11 @@ function ui(t, e, n) {
     icon: gn(i, e.icon),
     stateValue: e.state,
     picture: h,
-    isPerson: u,
+    isPerson: l,
     isRun: ft(e),
     cause: c,
     count: 1,
-    accent: I(i, s?.attributes.device_class, e.state, a, v)
+    accent: I(i, s?.attributes.device_class, e.state, a, g)
   };
 }
 function qe(t) {
@@ -2068,17 +2070,17 @@ function pi(t, e = !0, n = /* @__PURE__ */ new Set()) {
   return t.filter((s) => !i.has(s));
 }
 function fi(t, e, n) {
-  return ge(n) ? dn(t, e, q(n, t)) : e;
+  return ge(n) ? ln(t, e, q(n, t)) : e;
 }
 function mi(t, e, n, i, s, o, r) {
-  const a = i - ae(n) * 36e5, c = di(n), l = n.collapse_repeats ?? w.collapse_repeats, u = (o?.items ?? []).filter(
+  const a = i - ae(n) * 36e5, c = li(n), d = n.collapse_repeats ?? w.collapse_repeats, l = (o?.items ?? []).filter(
     (p) => p.when >= a && p.when <= i + Ye
-  ), h = o ? { items: u, vacuums: o.vacuums } : void 0, v = [...e], d = v.filter((p) => p.domain === "homeassistant" && p.message === "started").map((p) => p.when), f = q(n, t), m = (p) => (n.activity ?? w.activity) !== "meaningful" ? !1 : p.domain === "homeassistant" ? p.message === "stopped" && d.some((b) => b >= p.when && b - p.when <= 900) : mt(p) || p.entity_id && f.has(p.entity_id) || Vn.has(p.domain ?? p.entity_id?.split(".")[0] ?? "") ? !1 : d.some((b) => p.when >= b - 30 && p.when <= b + 180), y = v.filter((p) => {
+  ), h = o ? { items: l, vacuums: o.vacuums } : void 0, g = [...e], u = g.filter((p) => p.domain === "homeassistant" && p.message === "started").map((p) => p.when), f = q(n, t), y = (p) => (n.activity ?? w.activity) !== "meaningful" ? !1 : p.domain === "homeassistant" ? p.message === "stopped" && u.some((b) => b >= p.when && b - p.when <= 900) : mt(p) || p.entity_id && f.has(p.entity_id) || Vn.has(p.domain ?? p.entity_id?.split(".")[0] ?? "") ? !1 : u.some((b) => p.when >= b - 30 && p.when <= b + 180), m = g.filter((p) => {
     const b = p.when * 1e3;
     return b >= a && b <= i + Ye;
-  }).filter((p) => yt(p, n, s, t)).filter((p) => !m(p)).filter((p) => !hi(p, h)).sort((p, b) => b.when - p.when), $ = n.automation_runs ?? w.automation_runs, H = zn(
+  }).filter((p) => yt(p, n, s, t)).filter((p) => !y(p)).filter((p) => !hi(p, h)).sort((p, b) => b.when - p.when), $ = n.automation_runs ?? w.automation_runs, H = zn(
     t,
-    [...y.map((p) => ui(t, p, n)), ...u],
+    [...m.map((p) => ui(t, p, n)), ...l],
     $,
     n.state_color ?? w.state_color,
     n.show_actions === !1 ? void 0 : r,
@@ -2088,9 +2090,10 @@ function mi(t, e, n, i, s, o, r) {
       fi(t, ti(t, bt, n), n),
       n.chatty ?? w.chatty,
       f
-    )
+    ),
+    f
   ), wt = Yn(
-    (ge(n) ? Qn(t, be) : be).sort(
+    (ge(n) ? Qn(t, be, f) : be).sort(
       (p, b) => b.when - p.when
     ),
     n
@@ -2098,7 +2101,7 @@ function mi(t, e, n, i, s, o, r) {
   let ne = 0;
   for (const p of wt) {
     const b = j[j.length - 1];
-    if (l && b && !p.rich && !b.rich && p.entityId && b.entityId === p.entityId && b.verb === p.verb && qe(b) === qe(p) && ne - p.when <= li) {
+    if (d && b && !p.rich && !b.rich && p.entityId && b.entityId === p.entityId && b.verb === p.verb && qe(b) === qe(p) && ne - p.when <= di) {
       b.count += 1, ne = p.when;
       continue;
     }
@@ -2227,7 +2230,7 @@ let A = class extends R {
     const t = this._hass, e = this._config;
     if (!t || !e || !this.isConnected) return;
     let n;
-    Cn(e.target) && (n = dt(t, e.target));
+    Cn(e.target) && (n = lt(t, e.target));
     const i = ae(e), s = JSON.stringify([i, n ? [...n].sort() : null]);
     if (s === this._subKey) {
       this._allowed = n;
@@ -2244,8 +2247,8 @@ let A = class extends R {
       (a) => {
         if (o !== this._subToken) return;
         const c = this._config;
-        for (const l of a)
-          c && !yt(l, c, this._allowed, this._hass) || this._entries.set(_t(l), l);
+        for (const d of a)
+          c && !yt(d, c, this._allowed, this._hass) || this._entries.set(_t(d), d);
         this._entries.size > Ge && this._trimBuffer(), this._loading = !1, this._scheduleRecompute();
       },
       r,
@@ -2301,7 +2304,7 @@ let A = class extends R {
     const t = this._config;
     if (!t) return _;
     const e = this._groups.reduce((s, o) => s + o.items.length, 0), n = this._groups[this._groups.length - 1], i = n?.items[n.items.length - 1]?.key;
-    return g`
+    return v`
       <ha-card
         class=${W({
       compact: t.compact ?? w.compact,
@@ -2309,9 +2312,9 @@ let A = class extends R {
     })}
         style=${J({ "--wh-max-height": t.max_height ? `${t.max_height}px` : "" })}
       >
-        ${t.title ? g`<h1 class="card-header">${t.title}</h1>` : _}
+        ${t.title ? v`<h1 class="card-header">${t.title}</h1>` : _}
         <div class="scroll">
-          ${this._error ? g`<ha-alert alert-type="error">${this._error}</ha-alert>` : this._loading && e === 0 ? g`<div class="state">Loading…</div>` : e === 0 ? this._renderEmpty(t) : g`<ol>
+          ${this._error ? v`<ha-alert alert-type="error">${this._error}</ha-alert>` : this._loading && e === 0 ? v`<div class="state">Loading…</div>` : e === 0 ? this._renderEmpty(t) : v`<ol>
                       ${this._groups.map((s) => this._renderGroup(s, t, i))}
                     </ol>`}
         </div>
@@ -2320,37 +2323,37 @@ let A = class extends R {
   }
   _renderEmpty(t) {
     const e = ae(t), n = e % 24 === 0 && e > 24 ? `${e / 24} days` : e === 1 ? "hour" : `${e} hours`, i = e === 1 ? "No activity in the last hour" : `No activity in the last ${n}`;
-    return g`<div class="state">
+    return v`<div class="state">
       <ha-icon icon="mdi:timeline-clock-outline"></ha-icon>${i}
     </div>`;
   }
   _renderGroup(t, e, n) {
     const i = e.show_day_headers ?? w.show_day_headers;
-    return g`
-      ${i ? g`<li class="day" role="presentation">${t.label}</li>` : _}
+    return v`
+      ${i ? v`<li class="day" role="presentation">${t.label}</li>` : _}
       ${t.items.map((s) => this._renderItem(s, e, s.key === n))}
     `;
   }
   _renderIcon(t) {
     const e = t.entityId && !t.fixedIcon ? this._hass?.states[t.entityId] : void 0;
-    return g`<span class="glyph"
-      >${e ? g`<ha-state-icon
+    return v`<span class="glyph"
+      >${e ? v`<ha-state-icon
               .hass=${this._hass}
               .stateObj=${e}
               .stateValue=${t.stateValue}
-            ></ha-state-icon>` : g`<ha-icon .icon=${t.icon}></ha-icon>`}</span
+            ></ha-state-icon>` : v`<ha-icon .icon=${t.icon}></ha-icon>`}</span
     >`;
   }
   _renderItem(t, e, n) {
     const i = e.show_avatars ?? w.show_avatars, s = e.show_cause ?? w.show_cause, o = !!t.entityId && (e.tap_action ?? w.tap_action) !== "none", r = i && t.picture;
-    return g`
+    return v`
       <li class=${W({ item: !0, last: n })}>
         <div class="rail">
           <div
             class=${W({ node: !0, photo: !!r })}
             style=${J({ "--accent": t.accent })}
           >
-            ${r ? g`<img class="photo-img" src=${t.picture} alt="" loading="lazy" />` : this._renderIcon(t)}
+            ${r ? v`<img class="photo-img" src=${t.picture} alt="" loading="lazy" />` : this._renderIcon(t)}
           </div>
           <div class="line"></div>
         </div>
@@ -2365,10 +2368,10 @@ let A = class extends R {
         >
           <div class="body">
             <div class="primary">
-              ${t.text ? t.text : g`<span class="subject">${t.name}</span> ${t.verb}`}
-              ${t.count > 1 ? g`<span class="count">×${t.count}</span>` : _}
+              ${t.text ? t.text : v`<span class="subject">${t.name}</span> ${t.verb}`}
+              ${t.count > 1 ? v`<span class="count">×${t.count}</span>` : _}
             </div>
-            ${t.details?.length ? g`<div class="secondary">${t.details.join(" · ")}</div>` : _}
+            ${t.details?.length ? v`<div class="secondary">${t.details.join(" · ")}</div>` : _}
             ${s ? this._renderCause(t, i) : _}
             ${s ? this._renderVia(t) : _} ${this._renderEffects(t)}
           </div>
@@ -2378,16 +2381,16 @@ let A = class extends R {
     `;
   }
   _renderAvatar(t) {
-    return t.picture ? g`<img class="avatar" src=${t.picture} alt="" loading="lazy" />` : g`<span class="avatar initial">${t.name.charAt(0).toUpperCase()}</span>`;
+    return t.picture ? v`<img class="avatar" src=${t.picture} alt="" loading="lazy" />` : v`<span class="avatar initial">${t.name.charAt(0).toUpperCase()}</span>`;
   }
   _renderCause(t, e) {
     const n = t.cause;
     if (!n || !n.actor && !n.trigger) return _;
     const i = n.actor, s = !!i?.entityId && (this._config?.tap_action ?? w.tap_action) !== "none";
-    return g`
+    return v`
       <div class="secondary">
-        ${i ? g`by${e && i.kind === "user" ? this._renderAvatar(i) : _}
-              ${s ? this._actorLink(i) : g`<span title=${i.detail ?? i.name}>${i.name}</span>`}` : _}${i && n.trigger ? ", " : _}${n.trigger ? g`${i ? "triggered by" : "by"} ${n.trigger}` : _}
+        ${i ? v`by${e && i.kind === "user" ? this._renderAvatar(i) : _}
+              ${s ? this._actorLink(i) : v`<span title=${i.detail ?? i.name}>${i.name}</span>`}` : _}${i && n.trigger ? ", " : _}${n.trigger ? v`${i ? "triggered by" : "by"} ${n.trigger}` : _}
       </div>
     `;
   }
@@ -2396,7 +2399,7 @@ let A = class extends R {
     const e = (n) => {
       n.stopPropagation(), this._moreInfo(t.entityId);
     };
-    return g`<span
+    return v`<span
       class="link"
       role="button"
       tabindex="0"
@@ -2411,10 +2414,10 @@ let A = class extends R {
   _renderVia(t) {
     if (!t.via?.length) return _;
     const e = (this._config?.tap_action ?? w.tap_action) !== "none";
-    return g`<div class="secondary">
+    return v`<div class="secondary">
       via
       ${t.via.map(
-      (n, i) => g`${i ? ", " : _}${n.entityId && e ? this._actorLink(n) : n.name}`
+      (n, i) => v`${i ? ", " : _}${n.entityId && e ? this._actorLink(n) : n.name}`
     )}
     </div>`;
   }
@@ -2422,10 +2425,10 @@ let A = class extends R {
   _renderEffects(t) {
     if (!t.effects?.length) return _;
     const e = (this._config?.tap_action ?? w.tap_action) !== "none";
-    return g`<ul class="effects">
+    return v`<ul class="effects">
       ${t.effects.map((n) => {
       const i = n.entityId && !n.fixedIcon ? this._hass?.states[n.entityId] : void 0, s = e && !!n.entityId;
-      return g`<li
+      return v`<li
           class=${W({ effect: !0, clickable: s })}
           style=${J({ "--accent": n.accent })}
           role=${s ? "button" : "text"}
@@ -2438,14 +2441,14 @@ let A = class extends R {
       }}
         >
           <span class="e-icon"
-            >${i ? g`<ha-state-icon
+            >${i ? v`<ha-state-icon
                     .hass=${this._hass}
                     .stateObj=${i}
                     .stateValue=${n.stateValue}
-                  ></ha-state-icon>` : g`<ha-icon .icon=${n.icon}></ha-icon>`}</span
+                  ></ha-state-icon>` : v`<ha-icon .icon=${n.icon}></ha-icon>`}</span
           >
           <span class="e-text"
-            ><span class="e-name">${n.name}</span> ${n.verb}${n.details?.length ? g`<span class="e-details"> · ${n.details.join(" · ")}</span>` : _}</span
+            ><span class="e-name">${n.name}</span> ${n.verb}${n.details?.length ? v`<span class="e-details"> · ${n.details.join(" · ")}</span>` : _}</span
           >
         </li>`;
     })}
@@ -2453,10 +2456,10 @@ let A = class extends R {
   }
   _renderTime(t, e) {
     const n = e.time_display ?? w.time_display, i = ct(t.when, this._hass), s = Jt(t.when, this._now);
-    return g`
+    return v`
       <div class="time" title=${Gt(t.when, this._hass)}>
-        ${n !== "relative" ? g`<span class="abs">${i}</span>` : _}
-        ${n !== "absolute" ? g`<span class="rel">${s}</span>` : _}
+        ${n !== "relative" ? v`<span class="abs">${i}</span>` : _}
+        ${n !== "absolute" ? v`<span class="rel">${s}</span>` : _}
       </div>
     `;
   }
@@ -2745,7 +2748,7 @@ let N = class extends R {
     );
   }
   _form(t) {
-    return g`<ha-form
+    return v`<ha-form
       .hass=${this.hass}
       .data=${this._data()}
       .schema=${t}
@@ -2755,10 +2758,10 @@ let N = class extends R {
     ></ha-form>`;
   }
   render() {
-    return !this.hass || !this._config ? _ : g`
+    return !this.hass || !this._config ? _ : v`
       ${this._form(ki)}
       ${Ii.map(
-      (t) => g`
+      (t) => v`
           <ha-expansion-panel outlined .header=${t.header} .expanded=${t.id === "source"}>
             <ha-icon slot="leading-icon" .icon=${t.icon}></ha-icon>
             <div class="panel-content">${this._form(t.schema)}</div>

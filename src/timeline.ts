@@ -312,10 +312,11 @@ export function buildTimeline(
       config.chatty ?? DEFAULTS.chatty,
       picked,
     ),
+    picked,
   );
   // One action, one entry: what an automation caused moves under the entry that started it.
   const merged = applyColors(
-    (smartFilteringOn(config) ? groupEffects(hass, bursts) : bursts).sort(
+    (smartFilteringOn(config) ? groupEffects(hass, bursts, picked) : bursts).sort(
       (a, b) => b.when - a.when,
     ),
     config,

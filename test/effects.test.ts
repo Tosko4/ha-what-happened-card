@@ -175,6 +175,14 @@ describe("one action, one entry", () => {
     expect(build([...press, ...later])).toHaveLength(2);
   });
 
+  it("keeps an entity the user asked for as a row of its own", () => {
+    const result = build(press, { also_show_entities: ["text.b35"] });
+    // the picked display is a row of its own, not nested under the press
+    expect(result.map((i) => i.name)).toContain('JadivClock 3.5" Broadcast');
+    const head = result.find((i) => i.name === "4 – Prídem onedlho")!;
+    expect(head.effects!.map((e) => e.entityId)).not.toContain("text.b35");
+  });
+
   it("is off when the user picks what to see", () => {
     expect(
       build(press, {

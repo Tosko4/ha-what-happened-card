@@ -54,14 +54,19 @@ function viaOf(effects: TimelineItem[]): Actor[] {
   return out;
 }
 
-export function groupEffects(hass: HomeAssistant, items: TimelineItem[]): TimelineItem[] {
+export function groupEffects(
+  hass: HomeAssistant,
+  items: TimelineItem[],
+  /** Entities the user asked to see: they stay rows of their own, never nested. */
+  picked: ReadonlySet<string> = new Set(),
+): TimelineItem[] {
   // Everything done by an automation or script, grouped by what started it.
   const byKey = new Map<string, TimelineItem[]>();
   for (const item of items) {
     const cause = item.cause;
     const actor = cause?.actor;
     if (!actor?.entityId || (actor.kind !== "automation" && actor.kind !== "script")) continue;
-    if (item.effects) continue;
+    if (item.effects || (item.entityId && picked.has(item.entityId))) continue;
     const key = cause?.source
       ? `source|${cause.source.key}`
       : `run|${actor.entityId}|${cause?.trigger ?? ""}`;
@@ -74,7 +79,9 @@ export function groupEffects(hass: HomeAssistant, items: TimelineItem[]): Timeli
   const added: TimelineItem[] = [];
   // A script or automation calls input_select.select_option; the log records that change as a
   // bare service call with no trace of who made it.
-  const loose = items.filter((i) => !i.rich && i.cause?.actor?.kind === "service");
+  const loose = items.filter(
+    (i) => !i.rich && i.cause?.actor?.kind === "service" && !(i.entityId && picked.has(i.entityId)),
+  );
 
   for (const [, all] of byKey) {
     // Split into bursts: effects of one press happen within seconds of each other.
