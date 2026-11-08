@@ -132,15 +132,17 @@ export function groupBursts(items: TimelineItem[]): TimelineItem[] {
 
   const replaced = new Map<TimelineItem, TimelineItem | null>();
   for (const { members } of clusters) {
-    if (members.length < BURST_MIN_ITEMS) continue;
+    // One entity repeating itself is not a burst of several entities.
+    const distinct = new Set(members.map((m) => m.entityId));
+    if (distinct.size < BURST_MIN_ITEMS) continue;
     const newest = members[0];
-    const names = members.map((m) => m.name);
+    const names = [...new Set(members.map((m) => m.name))];
     const shown = names.slice(0, 6).join(", ");
     replaced.set(newest, {
       ...newest,
       key: `burst|${newest.key}`,
       entityId: undefined,
-      name: `${members.length} ${plural(newest.domain)}`,
+      name: `${distinct.size} ${plural(newest.domain)}`,
       verb: pluralVerb(newest.verb),
       details: [names.length > 6 ? `${shown} and ${names.length - 6} more` : shown],
       cause: members.every((m) => sameCause(m, newest)) ? newest.cause : undefined,

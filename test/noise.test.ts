@@ -110,6 +110,13 @@ describe("bursts", () => {
     expect(result[0].details?.[0]).toContain("and 14 more");
   });
 
+  it("does not call one button pressed three times a burst of buttons", () => {
+    const presses = [100, 101, 102].map((ago) =>
+      entry({ ago, entity_id: "button.bell", name: "Doorbell", state: "2026-11-08T14:00:00" }),
+    );
+    expect(items(presses, { collapse_repeats: false })).toHaveLength(3);
+  });
+
   it("does not group two entities or things far apart in time", () => {
     const two = [
       entry({ ago: 100, entity_id: "light.a", name: "A", state: "on" }),
