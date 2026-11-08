@@ -209,6 +209,57 @@ export const cardStyles = css`
     outline: 2px solid var(--primary-color);
     border-radius: 2px;
   }
+  .effects {
+    list-style: none;
+    margin: var(--ha-space-2, 8px) 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--ha-space-1, 4px);
+  }
+  .effect {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--ha-space-2, 8px);
+    padding: 2px var(--ha-space-1, 4px);
+    margin: 0 calc(-1 * var(--ha-space-1, 4px));
+    border-radius: var(--ha-border-radius-sm, 4px);
+    color: var(--primary-text-color);
+    font-size: var(--ha-font-size-m, 14px);
+    line-height: 1.3;
+    outline: none;
+  }
+  .effect.clickable {
+    cursor: pointer;
+  }
+  .effect.clickable:hover {
+    background: color-mix(in srgb, var(--primary-text-color) 6%, transparent);
+  }
+  .effect.clickable:focus-visible {
+    box-shadow: 0 0 0 2px var(--primary-color);
+  }
+  .e-icon {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    color: var(--accent);
+    --mdc-icon-size: 16px;
+  }
+  .e-icon ha-state-icon,
+  .e-icon ha-icon {
+    display: block;
+    width: 16px;
+    height: 16px;
+  }
+  .e-name {
+    font-weight: var(--ha-font-weight-medium, 500);
+  }
+  .e-details {
+    color: var(--wh-secondary);
+    font-size: var(--ha-font-size-s, 12px);
+  }
   .count {
     display: inline-flex;
     align-items: center;

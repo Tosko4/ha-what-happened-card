@@ -88,6 +88,10 @@ export interface TargetConfig {
 export type TimeDisplay = "relative" | "absolute" | "both";
 export type TapAction = "more-info" | "none";
 export type AutomationRuns = "actions" | "all" | "none";
+export interface ColorRule {
+  match: string;
+  color: string;
+}
 export type Activity = "meaningful" | "everything";
 export type ChattyMode = "summarize" | "hide" | "show";
 export type Order = "newest_first" | "oldest_first";
@@ -105,6 +109,8 @@ export interface WhatHappenedConfig {
   also_show_domains?: string[];
   /** Labels: everything carrying one of them is shown like an entity in also_show_entities. */
   also_show_labels?: string[];
+  /** Colors for the icons: match is an entity id or a domain, color a palette name or any CSS color. */
+  colors?: ColorRule[];
   hours_to_show?: number;
   max_entries?: number;
   order?: Order;
@@ -146,6 +152,22 @@ export interface Cause {
   trigger?: string;
   /** Entity whose state change started the automation, if it could be identified. */
   triggerEntityId?: string;
+  /** The entry of that triggering entity itself (e.g. the button press), folded into this one. */
+  source?: TimelineItem;
+}
+
+/** One thing that an action caused, listed under the entry that started it. */
+export interface EffectLine {
+  key: string;
+  domain: string;
+  name: string;
+  verb: string;
+  entityId?: string;
+  icon: string;
+  fixedIcon?: boolean;
+  stateValue?: string;
+  accent: string;
+  details?: string[];
 }
 
 export interface TimelineItem {
@@ -176,6 +198,10 @@ export interface TimelineItem {
   phase?: "start" | "finish";
   /** Draw `icon` as given instead of asking <ha-state-icon>. */
   fixedIcon?: boolean;
+  /** What this entry caused (several things from one action), shown beneath it. */
+  effects?: EffectLine[];
+  /** The automations or scripts that carried the action out. */
+  via?: Actor[];
 }
 
 export interface DayGroup {
