@@ -31,6 +31,7 @@ const CORE_DOMAINS = new Set([
   "vacuum",
   "lawn_mower",
   "person",
+  "device_tracker", // folded into its person (see people.ts), never listed alone
   "scene",
   "event",
   "doorbell",
@@ -77,8 +78,8 @@ const MEANINGFUL_BINARY_CLASSES = new Set([
   "plug",
 ]);
 
-/** Domains that keep their meaning right after a restart. */
-export const RESTART_EXEMPT_DOMAINS = new Set(["person", "homeassistant"]);
+/** Domains that keep their meaning right after a restart (a tracker is folded into its person). */
+export const RESTART_EXEMPT_DOMAINS = new Set(["person", "device_tracker", "homeassistant"]);
 
 export function isRunEntry(entry: LogbookEntry): boolean {
   const domain = entry.domain ?? entry.entity_id?.split(".")[0];

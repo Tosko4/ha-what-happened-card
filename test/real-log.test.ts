@@ -10,7 +10,10 @@ import { NOW, entry, makeHass, state } from "./helpers";
  */
 const hass = makeHass(
   [
-    state("person.pavel", "home", { friendly_name: "Pavel Dubovský" }),
+    state("person.pavel", "home", {
+      friendly_name: "Pavel Dubovský",
+      device_trackers: ["device_tracker.moto"],
+    }),
     state("device_tracker.moto", "home", { friendly_name: "moto g13" }),
     state("light.dining", "off", { friendly_name: "Svetlá jedáleň" }),
     state("media_player.atom_echo", "idle", { friendly_name: "Atom Echo 01" }),
@@ -159,6 +162,11 @@ describe("a real house, default view", () => {
     expect(angel.cause?.trigger).toBe("time");
     expect(code.cause?.actor?.name).toBe("DevControl – Hlásenie kódu (spracovanie)");
     expect(code.cause?.trigger).toBe("44 – Onedlho sa bude vysávať (2–15 min) was pressed");
+  });
+
+  it("shows the person arriving, based on their phone, and not the phone itself", () => {
+    const pavel = items.find((i) => i.name === "Pavel Dubovský")!;
+    expect(pavel.cause?.trigger).toBe("device moto g13");
   });
 
   it("shows everything with activity: everything", () => {

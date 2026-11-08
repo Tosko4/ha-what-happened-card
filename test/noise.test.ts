@@ -319,3 +319,115 @@ describe("meaningful activity (default)", () => {
     expect(run("binary_sensor.wifi")).toHaveLength(0);
   });
 });
+
+describe("light groups", () => {
+  const groupHass = makeHass([
+    state("light.dining", "off", {
+      friendly_name: "Svetlá jedáleň",
+      entity_id: ["light.dining_1", "light.dining_2", "light.dining_3"],
+    }),
+    state("light.dining_1", "off", { friendly_name: "Jedáleň svetlo 01" }),
+    state("light.dining_2", "off", { friendly_name: "Jedáleň svetlo 02" }),
+    state("light.dining_3", "off", { friendly_name: "Jedáleň svetlo 03" }),
+  ]);
+  const shown = (e: LogbookEntry[]) =>
+    buildTimeline(groupHass, e, cfg(), NOW).flatMap((g) => g.items);
+  const off = (ago: number, id: string, name: string, c: Partial<LogbookEntry> = {}) =>
+    entry({ ago, entity_id: id, name, state: "off", ...c });
+
+  it("shows the group and not its members", () => {
+    const result = shown([
+      off(100, "light.dining", "Svetlá jedáleň", {
+        context_entity_id: "light.dining_2",
+        context_entity_id_name: "Jedáleň svetlo 02",
+      }),
+      off(100, "light.dining_2", "Jedáleň svetlo 02"),
+      off(100, "light.dining_1", "Jedáleň svetlo 01"),
+      off(99, "light.dining_3", "Jedáleň svetlo 03"),
+    ]);
+    expect(result.map((i) => i.name)).toEqual(["Svetlá jedáleň"]);
+    expect(result[0].cause?.actor?.name).toBe("Jedáleň svetlo 02");
+  });
+
+  it("keeps members the user picked by name, or when they chose domains or everything", () => {
+    const both = [
+      off(100, "light.dining", "Svetlá jedáleň"),
+      off(100, "light.dining_1", "Jedáleň svetlo 01"),
+    ];
+    const run = (c: Partial<WhatHappenedConfig>) =>
+      buildTimeline(groupHass, both, cfg(c), NOW).flatMap((g) => g.items).length;
+    expect(run({})).toBe(1);
+    expect(run({ target: { entity_id: ["light.dining", "light.dining_1"] } })).toBe(2);
+    expect(run({ include_domains: ["light"] })).toBe(2);
+    expect(run({ activity: "everything" })).toBe(2);
+  });
+
+  it("keeps a member that changed alone, while the group stayed on", () => {
+    const result = shown([off(100, "light.dining_1", "Jedáleň svetlo 01")]);
+    expect(result.map((i) => i.name)).toEqual(["Jedáleň svetlo 01"]);
+  });
+
+  it("keeps a member that did something different from the group", () => {
+    const result = shown([
+      entry({ ago: 100, entity_id: "light.dining", name: "Svetlá jedáleň", state: "on" }),
+      off(98, "light.dining_1", "Jedáleň svetlo 01"),
+    ]);
+    expect(result).toHaveLength(2);
+  });
+
+  it("keeps a member that changed long before or after the group", () => {
+    const result = shown([
+      off(100, "light.dining", "Svetlá jedáleň"),
+      off(400, "light.dining_1", "Jedáleň svetlo 01"),
+    ]);
+    expect(result).toHaveLength(2);
+  });
+});
+
+describe("people and their devices", () => {
+  const peopleHass = makeHass([
+    state("person.pavel", "home", {
+      friendly_name: "Pavel",
+      device_trackers: ["device_tracker.moto", "device_tracker.watch"],
+    }),
+    state("device_tracker.moto", "home", { friendly_name: "moto g13" }),
+    state("device_tracker.watch", "home", { friendly_name: "Watch" }),
+  ]);
+  const shown = (e: LogbookEntry[], c: Partial<WhatHappenedConfig> = {}) =>
+    buildTimeline(peopleHass, e, cfg(c), NOW).flatMap((g) => g.items);
+  const left = (id: string, name: string, ago: number) =>
+    entry({ ago, entity_id: id, name, state: "not_home" });
+
+  it("shows only the person, based on the device", () => {
+    const result = shown([
+      left("person.pavel", "Pavel", 100),
+      left("device_tracker.moto", "moto g13", 101),
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe("Pavel");
+    expect(result[0].verb).toBe("left home");
+    expect(result[0].cause?.trigger).toBe("device moto g13");
+  });
+
+  it("drops a device that changed while the person stayed", () => {
+    expect(shown([left("device_tracker.watch", "Watch", 100)])).toHaveLength(0);
+  });
+
+  it("does not use a device that changed minutes away from the person", () => {
+    const result = shown([
+      left("person.pavel", "Pavel", 100),
+      left("device_tracker.moto", "moto g13", 700),
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result[0].cause).toBeUndefined();
+  });
+
+  it("lists devices when asked for everything or when picked by name", () => {
+    const both = [left("person.pavel", "Pavel", 100), left("device_tracker.moto", "moto g13", 101)];
+    expect(shown(both, { activity: "everything" })).toHaveLength(2);
+    expect(
+      shown(both, { target: { entity_id: ["person.pavel", "device_tracker.moto"] } }),
+    ).toHaveLength(2);
+    expect(shown(both, { include_domains: ["person", "device_tracker"] })).toHaveLength(2);
+  });
+});

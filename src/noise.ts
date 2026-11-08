@@ -1,4 +1,4 @@
-import type { TimelineItem } from "./types";
+import type { HomeAssistant, TimelineItem } from "./types";
 
 /**
  * Taming noisy installations without any manual entity picking.
@@ -158,4 +158,40 @@ export function groupBursts(items: TimelineItem[]): TimelineItem[] {
     const swap = replaced.get(item);
     return swap ? [swap] : [];
   });
+}
+
+const GROUP_WINDOW_MS = 30_000;
+
+/**
+ * A light group switches together with its members, so the log holds the group and every
+ * member doing the same thing. Show the group only. A member that changes alone (the group
+ * stays on because other members are on) has no matching group entry and is kept.
+ */
+export function hideGroupMembers(
+  hass: HomeAssistant,
+  items: TimelineItem[],
+  /** Entities the user asked for by name: never hidden. */
+  picked: ReadonlySet<string> = new Set(),
+): TimelineItem[] {
+  const hidden = new Set<TimelineItem>();
+  for (const group of items) {
+    if (group.rich || !group.entityId) continue;
+    const members = hass.states[group.entityId]?.attributes.entity_id;
+    if (!Array.isArray(members) || members.length === 0) continue;
+    const memberIds = new Set<string>(members.filter((m): m is string => typeof m === "string"));
+    for (const other of items) {
+      if (
+        other !== group &&
+        !other.rich &&
+        other.entityId &&
+        !picked.has(other.entityId) &&
+        memberIds.has(other.entityId) &&
+        other.verb === group.verb &&
+        Math.abs(other.when - group.when) <= GROUP_WINDOW_MS
+      ) {
+        hidden.add(other);
+      }
+    }
+  }
+  return hidden.size ? items.filter((i) => !hidden.has(i)) : items;
 }
