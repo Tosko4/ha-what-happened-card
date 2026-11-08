@@ -60,7 +60,7 @@ exclude_domains:
 | `show_cause`       | `true`         | Show who/what caused it and the trigger                                   |
 | `show_avatars`     | `true`         | Use profile pictures for people                                           |
 | `show_day_headers` | `true`         | Group by day                                                              |
-| `colorful`         | `true`         | Colored accents per domain                                                |
+| `state_color`      | `true`         | Color icons by entity state, using your theme's state colors              |
 | `compact`          | `false`        | Smaller layout                                                            |
 | `time_display`     | `both`         | `both`, `absolute` or `relative`                                          |
 | `tap_action`       | `more-info`    | `more-info` or `none`                                                     |

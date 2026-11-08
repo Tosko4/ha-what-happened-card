@@ -158,7 +158,7 @@ export function describeState(
   entityId: string | undefined,
   state: string,
 ): StateDescription {
-  if (state === "unavailable") return { verb: "became unavailable", tone: "alert" };
+  if (state === "unavailable") return { verb: "became unavailable", tone: "unavailable" };
   if (state === "unknown") return { verb: "became unknown", tone: "neutral" };
 
   const stateObj = entityId ? hass.states[entityId] : undefined;

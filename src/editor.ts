@@ -41,7 +41,7 @@ const LABELS: Record<string, string> = {
   show_cause: "Show why it happened (who / what / trigger)",
   show_avatars: "Show profile pictures",
   show_day_headers: "Show day headers",
-  colorful: "Colorful accents",
+  state_color: "Show state color",
   compact: "Compact layout",
   time_display: "Time",
   tap_action: "Tap action",
@@ -120,7 +120,7 @@ const DISPLAY_SCHEMA: Schema = [
   { name: "show_cause", selector: { boolean: {} } },
   { name: "show_avatars", selector: { boolean: {} } },
   { name: "show_day_headers", selector: { boolean: {} } },
-  { name: "colorful", selector: { boolean: {} } },
+  { name: "state_color", selector: { boolean: {} } },
   { name: "compact", selector: { boolean: {} } },
   {
     name: "time_display",

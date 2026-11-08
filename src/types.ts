@@ -99,7 +99,7 @@ export interface WhatHappenedConfig {
   show_cause?: boolean;
   show_avatars?: boolean;
   show_day_headers?: boolean;
-  colorful?: boolean;
+  state_color?: boolean;
   compact?: boolean;
   time_display?: TimeDisplay;
   tap_action?: TapAction;
@@ -108,7 +108,7 @@ export interface WhatHappenedConfig {
   collapse_repeats?: boolean;
 }
 
-export type Tone = "active" | "inactive" | "alert" | "neutral";
+export type Tone = "active" | "inactive" | "alert" | "unavailable" | "neutral";
 
 export type ActorKind = "user" | "automation" | "script" | "scene" | "service" | "entity" | "other";
 
@@ -136,7 +136,9 @@ export interface TimelineItem {
   name: string;
   verb: string;
   tone: Tone;
+  /** Plain icon for entries that are not entities (or entities that no longer exist). */
   icon: string;
+  stateValue?: string;
   picture?: string;
   isPerson: boolean;
   cause?: Cause;

@@ -1,4 +1,5 @@
 import * as mdi from "@mdi/js";
+import { iconFor } from "./icons";
 import "../src/card";
 import "../src/editor";
 import type { HomeAssistant, LogbookEntry } from "../src/types";
@@ -21,34 +22,58 @@ customElements.define(
   },
 );
 // ha-card is a light-DOM child consumer: copy host classes when lit sets them.
+class MdiIcon extends HTMLElement {
+  protected _icon = "";
+  set icon(v: string) {
+    this._icon = v;
+    this.render();
+  }
+  get icon() {
+    return this._icon;
+  }
+  static get observedAttributes() {
+    return ["icon"];
+  }
+  attributeChangedCallback(_n: string, _o: string, v: string) {
+    this.icon = v;
+  }
+  render() {
+    const key =
+      "mdi" +
+      this._icon.replace("mdi:", "").replace(/(^|-)(\w)/g, (_m, _a, c: string) => c.toUpperCase());
+    const path = (mdi as Record<string, string>)[key] ?? mdi.mdiCircleMedium;
+    this.style.display = "inline-flex";
+    this.style.width = this.style.height = "var(--mdc-icon-size, 24px)";
+    this.innerHTML = `<svg viewBox="0 0 24 24" width="100%" height="100%" fill="currentColor"><path d="${path}"/></svg>`;
+  }
+}
+customElements.define("ha-icon", MdiIcon);
+// Stand-in for <ha-state-icon>: HA picks the icon from the entity and its state.
 customElements.define(
-  "ha-icon",
-  class extends HTMLElement {
-    private _icon = "";
-    set icon(v: string) {
-      this._icon = v;
-      this.render();
+  "ha-state-icon",
+  class extends MdiIcon {
+    private _stateObj: any;
+    private _stateValue?: string;
+    set stateObj(v: any) {
+      this._stateObj = v;
+      this.update();
     }
-    get icon() {
-      return this._icon;
+    set stateValue(v: string | undefined) {
+      this._stateValue = v;
+      this.update();
     }
-    static get observedAttributes() {
-      return ["icon"];
-    }
-    attributeChangedCallback(_n: string, _o: string, v: string) {
-      this.icon = v;
-    }
-    render() {
-      const key =
-        "mdi" +
-        this._icon.replace("mdi:", "").replace(/(^|-)(\w)/g, (_m, _a, c) => c.toUpperCase());
-      const path = (mdi as Record<string, string>)[key] ?? mdi.mdiCircleMedium;
-      this.style.display = "inline-flex";
-      this.style.width = this.style.height = "var(--mdc-icon-size, 24px)";
-      this.innerHTML = `<svg viewBox="0 0 24 24" width="100%" height="100%" fill="currentColor"><path d="${path}"/></svg>`;
+    set hass(_v: unknown) {}
+    private update() {
+      if (!this._stateObj) return;
+      this.icon = iconFor(
+        this._stateObj.entity_id.split(".")[0],
+        this._stateObj,
+        this._stateValue ?? this._stateObj.state,
+      );
     }
   },
 );
+customElements.define("ha-alert", class extends HTMLElement {});
 
 // --- Mock data -------------------------------------------------------------
 function avatar(letter: string, bg: string): string {
@@ -209,5 +234,5 @@ function mount(id: string, config: Record<string, unknown>) {
 
 mount("a", { title: "What happened", hours_to_show: 48, max_entries: 50 });
 mount("b", { title: "Activity", compact: true, time_display: "relative" });
-mount("c", { hours_to_show: 1, show_day_headers: false, colorful: false });
+mount("c", { hours_to_show: 1, show_day_headers: false, state_color: false });
 if (location.hash.includes("dark")) document.body.classList.add("dark");

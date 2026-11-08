@@ -39,10 +39,10 @@ describe("describeState", () => {
     expect(describeState(hass, "person", "person.a", "Work").verb).toBe("arrived at Work");
   });
 
-  it("flags unavailable as alert", () => {
+  it("marks unavailable", () => {
     expect(describeState(hass, "light", "light.x", "unavailable")).toEqual({
       verb: "became unavailable",
-      tone: "alert",
+      tone: "unavailable",
     });
   });
 

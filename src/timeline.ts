@@ -1,5 +1,5 @@
 import { resolveCause, runTrigger } from "./context";
-import { ACTOR_ICONS, accentFor, iconFor } from "./domains";
+import { ACTOR_ICONS, fallbackIcon, stateColor } from "./appearance";
 import { dayKey, formatDayLabel } from "./format";
 import { describeState } from "./state-message";
 import type {
@@ -17,7 +17,7 @@ export const DEFAULTS = {
   show_cause: true,
   show_avatars: true,
   show_day_headers: true,
-  colorful: true,
+  state_color: true,
   compact: false,
   time_display: "both",
   tap_action: "more-info",
@@ -101,18 +101,11 @@ function toItem(
   }
 
   const actor = cause?.actor;
-  if (actor && !actor.icon) {
-    const actorState = actor.entityId ? hass.states[actor.entityId] : undefined;
-    actor.icon =
-      actorState?.attributes.icon ??
-      (actor.kind === "entity" && actor.entityId
-        ? iconFor(actor.entityId.split(".")[0], actorState, actorState?.state)
-        : ACTOR_ICONS[actor.kind]);
-  }
+  if (actor && !actor.icon) actor.icon = ACTOR_ICONS[actor.kind];
 
   const isPerson = domain === "person";
   const picture = isPerson ? stateObj?.attributes.entity_picture : undefined;
-  const colorful = config.colorful ?? DEFAULTS.colorful;
+  const useColor = config.state_color ?? DEFAULTS.state_color;
 
   return {
     key: entryKey(entry),
@@ -122,12 +115,13 @@ function toItem(
     name,
     verb,
     tone,
-    icon: iconFor(domain, stateObj, entry.state, entry.icon),
+    icon: fallbackIcon(domain, entry.icon),
+    stateValue: entry.state,
     picture,
     isPerson,
     cause,
     count: 1,
-    accent: accentFor(domain, tone, colorful),
+    accent: stateColor(domain, stateObj?.attributes.device_class, entry.state, tone, useColor),
   };
 }
 

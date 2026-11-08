@@ -2,7 +2,6 @@ import { LitElement, html, nothing, type TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { styleMap } from "lit/directives/style-map.js";
-import { ACTOR_COLORS, triggerIcon } from "./domains";
 import { formatDateTime, formatRelative, formatTime } from "./format";
 import { subscribeLogbook } from "./logbook";
 import { cardStyles } from "./styles";
@@ -16,7 +15,6 @@ import {
   plainSentence,
 } from "./timeline";
 import type {
-  Actor,
   DayGroup,
   HomeAssistant,
   LogbookEntry,
@@ -247,7 +245,7 @@ export class WhatHappenedCard extends LitElement {
         <div class="scroll">
           ${
             this._error
-              ? html`<div class="state error" role="alert">${this._error}</div>`
+              ? html`<ha-alert alert-type="error">${this._error}</ha-alert>`
               : this._loading && total === 0
                 ? html`<div class="state">Loading…</div>`
                 : total === 0
@@ -287,6 +285,18 @@ export class WhatHappenedCard extends LitElement {
     `;
   }
 
+  private _renderIcon(item: TimelineItem): TemplateResult {
+    const stateObj = item.entityId ? this._hass?.states[item.entityId] : undefined;
+    // Entities get their icon from <ha-state-icon>, as the HA design guidelines require.
+    return stateObj
+      ? html`<ha-state-icon
+          .hass=${this._hass}
+          .stateObj=${stateObj}
+          .stateValue=${item.stateValue}
+        ></ha-state-icon>`
+      : html`<ha-icon .icon=${item.icon}></ha-icon>`;
+  }
+
   private _renderItem(
     item: TimelineItem,
     config: WhatHappenedConfig,
@@ -304,12 +314,12 @@ export class WhatHappenedCard extends LitElement {
         <div class="rail">
           <div
             class=${classMap({ node: true, photo: !!photo })}
-            style=${styleMap({ "--accent": item.accent, "--chip": ACTOR_COLORS.user })}
+            style=${styleMap({ "--accent": item.accent })}
           >
             ${
               photo
                 ? html`<img class="photo-img" src=${item.picture!} alt="" loading="lazy" />`
-                : html`<ha-icon .icon=${item.icon}></ha-icon>`
+                : this._renderIcon(item)
             }
             ${
               badge
@@ -335,11 +345,11 @@ export class WhatHappenedCard extends LitElement {
           @keydown=${(ev: KeyboardEvent) => this._onRowKey(ev, item)}
         >
           <div class="body">
-            <div class="sentence">
-              <span class="subject">${item.name}</span> <span class="verb">${item.verb}</span>
+            <div class="primary">
+              <span class="subject">${item.name}</span> ${item.verb}
               ${item.count > 1 ? html`<span class="count">×${item.count}</span>` : nothing}
             </div>
-            ${showCause ? this._renderCause(item, avatars) : nothing}
+            ${showCause ? this._renderCause(item) : nothing}
           </div>
           ${this._renderTime(item, config)}
         </div>
@@ -347,54 +357,39 @@ export class WhatHappenedCard extends LitElement {
     `;
   }
 
-  private _renderCause(item: TimelineItem, avatars: boolean): TemplateResult | typeof nothing {
+  private _renderCause(item: TimelineItem): TemplateResult | typeof nothing {
     const cause = item.cause;
     if (!cause || (!cause.actor && !cause.trigger)) return nothing;
+    const actor = cause.actor;
+    const interactive =
+      !!actor?.entityId && (this._config?.tap_action ?? DEFAULTS.tap_action) !== "none";
     return html`
-      <div class="cause">
-        ${cause.actor ? html`<span>by</span>${this._renderActor(cause.actor, avatars)}` : nothing}
+      <div class="secondary">
         ${
-          cause.trigger
-            ? html`<span>${cause.actor ? "triggered by" : "by"}</span>
-                <span class="chip" style=${styleMap({ "--chip": ACTOR_COLORS.trigger })}>
-                  <ha-icon .icon=${triggerIcon(cause.trigger)}></ha-icon>
-                  <span class="text" title=${cause.trigger}>${cause.trigger}</span>
-                </span>`
+          actor
+            ? html`by
+              ${
+                interactive
+                  ? html`<button
+                      class="link"
+                      type="button"
+                      title=${actor.detail ? `${actor.name} – ${actor.detail}` : actor.name}
+                      @click=${(ev: Event) => {
+                        ev.stopPropagation();
+                        this._moreInfo(actor.entityId);
+                      }}
+                      @keydown=${(ev: KeyboardEvent) => ev.stopPropagation()}
+                    >
+                      ${actor.name}
+                    </button>`
+                  : html`<span title=${actor.detail ?? actor.name}>${actor.name}</span>`
+              }`
             : nothing
+        }${actor && cause.trigger ? ", " : nothing}${
+          cause.trigger ? html`${actor ? "triggered by" : "by"} ${cause.trigger}` : nothing
         }
       </div>
     `;
-  }
-
-  private _renderActor(actor: Actor, avatars: boolean): TemplateResult {
-    const color = ACTOR_COLORS[actor.kind];
-    const lead =
-      actor.kind === "user" && avatars
-        ? actor.picture
-          ? html`<img class="avatar" src=${actor.picture} alt="" loading="lazy" />`
-          : html`<span class="initial">${actor.name.charAt(0).toUpperCase()}</span>`
-        : html`<ha-icon .icon=${actor.icon ?? "mdi:information-outline"}></ha-icon>`;
-    const content = html`${lead}<span class="text">${actor.name}</span>`;
-    const title = actor.detail ? `${actor.name} – ${actor.detail}` : actor.name;
-
-    if (actor.entityId && (this._config?.tap_action ?? DEFAULTS.tap_action) !== "none") {
-      return html`<button
-        class="chip"
-        type="button"
-        style=${styleMap({ "--chip": color })}
-        title=${title}
-        @click=${(ev: Event) => {
-          ev.stopPropagation();
-          this._moreInfo(actor.entityId);
-        }}
-        @keydown=${(ev: KeyboardEvent) => ev.stopPropagation()}
-      >
-        ${content}
-      </button>`;
-    }
-    return html`<span class="chip" style=${styleMap({ "--chip": color })} title=${title}
-      >${content}</span
-    >`;
   }
 
   private _renderTime(item: TimelineItem, config: WhatHappenedConfig): TemplateResult {
