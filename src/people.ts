@@ -1,0 +1,38 @@
+import type { HomeAssistant, TimelineItem, WhatHappenedConfig } from "./types";
+
+/**
+ * A person and the phone that tracks them leave in the same second, so the log holds both
+ * "Pavel left home" and "moto g13 left home". Show the person, and say it was based on the
+ * device. A device that changes while the person stays put (another device still says home)
+ * says nothing about anyone and is left out.
+ */
+
+const WINDOW_MS = 60_000;
+
+export function foldTrackers(
+  hass: HomeAssistant,
+  items: TimelineItem[],
+  config: WhatHappenedConfig,
+): TimelineItem[] {
+  if ((config.activity ?? "meaningful") !== "meaningful") return items;
+  const picked = new Set([config.target?.entity_id ?? []].flat());
+
+  for (const person of items) {
+    if (person.domain !== "person" || !person.entityId) continue;
+    const trackers = hass.states[person.entityId]?.attributes.device_trackers;
+    if (!Array.isArray(trackers)) continue;
+    const device = items.find(
+      (i) =>
+        i.domain === "device_tracker" &&
+        i.entityId &&
+        trackers.includes(i.entityId) &&
+        i.verb === person.verb &&
+        Math.abs(i.when - person.when) <= WINDOW_MS,
+    );
+    if (!device || person.cause?.actor) continue;
+    person.cause = { trigger: `device ${device.name}`, triggerEntityId: device.entityId };
+  }
+  return items.filter(
+    (i) => !(i.domain === "device_tracker" && !(i.entityId && picked.has(i.entityId))),
+  );
+}

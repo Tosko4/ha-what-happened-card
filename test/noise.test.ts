@@ -370,3 +370,50 @@ describe("light groups", () => {
     expect(result).toHaveLength(2);
   });
 });
+
+describe("people and their devices", () => {
+  const peopleHass = makeHass([
+    state("person.pavel", "home", {
+      friendly_name: "Pavel",
+      device_trackers: ["device_tracker.moto", "device_tracker.watch"],
+    }),
+    state("device_tracker.moto", "home", { friendly_name: "moto g13" }),
+    state("device_tracker.watch", "home", { friendly_name: "Watch" }),
+  ]);
+  const shown = (e: LogbookEntry[], c: Partial<WhatHappenedConfig> = {}) =>
+    buildTimeline(peopleHass, e, cfg(c), NOW).flatMap((g) => g.items);
+  const left = (id: string, name: string, ago: number) =>
+    entry({ ago, entity_id: id, name, state: "not_home" });
+
+  it("shows only the person, based on the device", () => {
+    const result = shown([
+      left("person.pavel", "Pavel", 100),
+      left("device_tracker.moto", "moto g13", 101),
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe("Pavel");
+    expect(result[0].verb).toBe("left home");
+    expect(result[0].cause?.trigger).toBe("device moto g13");
+  });
+
+  it("drops a device that changed while the person stayed", () => {
+    expect(shown([left("device_tracker.watch", "Watch", 100)])).toHaveLength(0);
+  });
+
+  it("does not use a device that changed minutes away from the person", () => {
+    const result = shown([
+      left("person.pavel", "Pavel", 100),
+      left("device_tracker.moto", "moto g13", 700),
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result[0].cause).toBeUndefined();
+  });
+
+  it("lists devices when asked for everything or when picked by name", () => {
+    const both = [left("person.pavel", "Pavel", 100), left("device_tracker.moto", "moto g13", 101)];
+    expect(shown(both, { activity: "everything" })).toHaveLength(2);
+    expect(
+      shown(both, { target: { entity_id: ["person.pavel", "device_tracker.moto"] } }),
+    ).toHaveLength(2);
+  });
+});
