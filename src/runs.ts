@@ -25,6 +25,7 @@ function actionItem(
   action: ActionEvent,
   index: number,
   useColor: boolean,
+  by?: Actor,
 ): TimelineItem {
   const say = action.kind === "say";
   return {
@@ -49,6 +50,7 @@ function actionItem(
     rich: true,
     cause: {
       actor,
+      by,
       trigger: run.cause?.trigger,
       triggerEntityId: run.cause?.triggerEntityId,
     },
@@ -81,10 +83,12 @@ export function convertRuns(
     const kind = run.domain === "script" ? "script" : "automation";
     const own: Actor = { kind, name: run.name, entityId: run.entityId, icon: ACTOR_ICONS[kind] };
     // A script started by an automation: the automation is who did it, the script only how.
-    const actor = run.cause?.actor ?? own;
+    // A script or automation started by a person: it did it, on that person's behalf.
+    const by = run.cause?.actor?.kind === "user" ? run.cause.actor : undefined;
+    const actor = by ? own : (run.cause?.actor ?? own);
     const owners = new Set([run.entityId, actor.entityId]);
     actions.forEach((action, index) => {
-      added.push(actionItem(hass, run, actor, action, index, useColor));
+      added.push(actionItem(hass, run, actor, action, index, useColor, by));
       // "Kitchen speaker started playing" is implied by what it said.
       for (const other of items) {
         if (

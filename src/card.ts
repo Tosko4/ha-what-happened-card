@@ -490,7 +490,9 @@ export class WhatHappenedCard extends LitElement {
   private _renderCause(item: TimelineItem, avatars: boolean): TemplateResult | typeof nothing {
     const cause = item.cause;
     if (!cause || (!cause.actor && !cause.trigger)) return nothing;
-    const actor = cause.actor;
+    // A script started by a person: "by Ján, via FIND Phone".
+    const actor = cause.by ?? cause.actor;
+    const via = cause.by ? cause.actor : undefined;
     const interactive =
       !!actor?.entityId && (this._config?.tap_action ?? DEFAULTS.tap_action) !== "none";
     return html`
@@ -504,7 +506,7 @@ export class WhatHappenedCard extends LitElement {
                   : html`<span title=${actor.detail ?? actor.name}>${actor.name}</span>`
               }`
             : nothing
-        }${actor && cause.trigger ? ", " : nothing}${
+        }${via ? html`, via ${this._actorLink(via)}` : nothing}${actor && cause.trigger ? ", " : nothing}${
           cause.trigger ? html`${actor ? "triggered by" : "by"} ${cause.trigger}` : nothing
         }
       </div>
@@ -588,6 +590,10 @@ export class WhatHappenedCard extends LitElement {
           >
           <span class="e-text"
             ><span class="e-name">${effect.name}</span> ${effect.verb}${
+              effect.count && effect.count > 1
+                ? html`<span class="e-count"> ×${effect.count}</span>`
+                : nothing
+            }${
               effect.details?.length
                 ? html`<span class="e-details"> · ${effect.details.join(" · ")}</span>`
                 : nothing

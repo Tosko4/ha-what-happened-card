@@ -256,6 +256,10 @@ export const cardStyles = css`
   .e-name {
     font-weight: var(--ha-font-weight-medium, 500);
   }
+  .e-count {
+    color: var(--wh-secondary);
+    font-weight: var(--ha-font-weight-medium, 500);
+  }
   .e-details {
     color: var(--wh-secondary);
     font-size: var(--ha-font-size-s, 12px);

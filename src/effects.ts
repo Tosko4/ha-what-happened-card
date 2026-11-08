@@ -19,6 +19,7 @@ const CLUSTER_GAP_MS = 30_000;
 /** A plain service call (no person, no automation on record) this close to a cluster is part of it. */
 const LOOSE_BEFORE_MS = 5_000;
 const LOOSE_AFTER_MS = 10_000;
+const SCRIPT_STATE_WINDOW_MS = 30_000;
 
 function line(item: TimelineItem): EffectLine {
   return {
@@ -68,6 +69,31 @@ function scriptRuns(states: TimelineItem[]): TimelineItem[] {
       seen.set(key, { ...item, verb: "ran", stateValue: undefined, tone: "active" });
   }
   return [...seen.values()];
+}
+
+/** Four identical notifications in a row are one line with a count. */
+function mergeRepeats(lines: EffectLine[]): EffectLine[] {
+  const out: EffectLine[] = [];
+  for (const l of lines) {
+    const last = out[out.length - 1];
+    if (
+      last &&
+      last.name === l.name &&
+      last.verb === l.verb &&
+      (last.details ?? []).join() === (l.details ?? []).join()
+    ) {
+      last.count = (last.count ?? 1) + 1;
+    } else {
+      out.push({ ...l });
+    }
+  }
+  return out;
+}
+
+function headCause(cluster: TimelineItem[]): TimelineItem["cause"] {
+  const by = cluster.find((c) => c.cause?.by)?.cause?.by;
+  const trigger = triggerOf(cluster);
+  return by || trigger ? { actor: by, ...trigger } : undefined;
 }
 
 function triggerOf(cluster: TimelineItem[]) {
@@ -164,7 +190,11 @@ export function groupEffects(hass: HomeAssistant, items: TimelineItem[]): Timeli
       const states = cluster.filter(isScriptState);
       const real = cluster.filter((c) => !states.includes(c));
       if (real.length === 0) continue;
-      if (real.length < 2 && source?.cause?.actor?.kind !== "user" && !source?.soft) continue;
+      // A script or automation that a person started is told as one entry even for one effect.
+      const byPerson = real.some((c) => c.cause?.by);
+      if (real.length < 2 && source?.cause?.actor?.kind !== "user" && !source?.soft && !byPerson) {
+        continue;
+      }
       cluster.splice(0, cluster.length, ...real);
       for (const item of loose) {
         if (
@@ -179,7 +209,9 @@ export function groupEffects(hass: HomeAssistant, items: TimelineItem[]): Timeli
       cluster.sort((a, b) => a.when - b.when);
       const first = cluster[0];
       const via = viaOf(cluster);
-      const effects = [...cluster, ...scriptRuns(states)].sort((a, b) => a.when - b.when).map(line);
+      const effects = mergeRepeats(
+        [...cluster, ...scriptRuns(states)].sort((a, b) => a.when - b.when).map(line),
+      );
 
       let head: TimelineItem;
       if (source) {
@@ -208,12 +240,25 @@ export function groupEffects(hass: HomeAssistant, items: TimelineItem[]): Timeli
           isRun: false,
           count: 1,
           rich: true,
-          cause: triggerOf(cluster),
+          cause: headCause(cluster),
           effects,
           accent: stateColor(kind, undefined, "on", "active", true),
         };
       }
       for (const c of [...cluster, ...states]) removed.add(c);
+      // "FIND Phone was turned on" is the script itself: the entry that is now headed by it.
+      if (!source) {
+        for (const item of items) {
+          if (
+            isScriptState(item) &&
+            item.entityId === head.entityId &&
+            item.when >= first.when - SCRIPT_STATE_WINDOW_MS &&
+            item.when <= cluster[cluster.length - 1].when + SCRIPT_STATE_WINDOW_MS
+          ) {
+            removed.add(item);
+          }
+        }
+      }
       added.push(head);
     }
   }
