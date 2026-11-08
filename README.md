@@ -67,6 +67,8 @@ exclude_domains:
 | `tap_action`       | `more-info`    | `more-info` or `none`                                                     |
 | `max_height`       | –              | Pixels; for Masonry/Panel views                                           |
 | `vacuum_details`   | `true`         | Rich entries for TapoVac-ADV vacuums (rooms, duration, reason)            |
+| `activity`         | `meaningful`   | `meaningful` or `everything` (clocks, sensors, updates, …)                |
+| `show_runs`        | `false`        | Show plain automation and script runs                                     |
 | `chatty`           | `summarize`    | Very frequent entities: `summarize`, `hide` or `show`                     |
 | `show_diagnostic`  | `false`        | Include diagnostic, configuration and hidden entities                     |
 | `hide_unavailable` | `true`         | Hide `unavailable` / `unknown` states                                     |
@@ -74,15 +76,18 @@ exclude_domains:
 
 The "why" comes from the Home Assistant logbook context. Changes made physically on a device have no context, so they show without a cause line.
 
-## Smart defaults for busy installations
+## Smart defaults
 
-The card cleans up after itself, so you do not have to pick entities by hand:
+The card works out what is worth showing, so you do not have to pick entities by hand.
 
-- **Very frequent entities** (a clock sensor that changes every minute, an automation that runs every 15 minutes) are summarized in one entry, e.g. "Date & Time changed 90 times". An entity counts as very frequent with at least 10 entries at a pace of one per hour or faster. Use `chatty: hide` to drop them or `chatty: show` to keep every entry.
-- **Bursts** such as 20 updates switching in the same second, or four lights of one group, become one entry that lists the members.
-- **Diagnostic, configuration and hidden entities** are left out. Set `show_diagnostic: true` to include them, or pick one by name in `target` to always see it.
-- **A single action is a single entry:** a sensor that triggered an automation that switched a device is shown once, with the whole chain.
-- Automations triggered by other automations read "triggered by another automation"; long text values are shortened.
+**Shows things that happened:** lights, switches, locks, covers, doors and windows, motion, alarm, media players, vacuums, climate, scenes and people arriving or leaving, each with who or what caused it.
+
+**Leaves out by default:** clocks, text and number sensors, update entities, diagnostic / configuration / hidden entities, and automation or script runs that did not change anything you can see. A run is folded into what it did: "Living room light was turned on by Motion light, triggered by Hallway motion detected motion".
+
+- `activity: everything` shows all of it again; `show_runs: true` adds the plain automation and script runs. Picking an entity by name in `target`, or domains in `include_domains`, always shows them.
+- Whatever is still very frequent (at least 10 entries at one per hour or faster) is summarized in one entry such as "Kitchen light changed 24 times". `chatty: hide` drops it, `chatty: show` lists every entry.
+- Bursts, like 20 entities switching in the same second, become one entry that lists the members.
+- Automations triggered by other automations read "triggered by another automation"; long values are shortened.
 
 ## TapoVac-ADV vacuum support
 

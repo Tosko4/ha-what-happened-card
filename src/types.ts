@@ -87,6 +87,7 @@ export interface TargetConfig {
 
 export type TimeDisplay = "relative" | "absolute" | "both";
 export type TapAction = "more-info" | "none";
+export type Activity = "meaningful" | "everything";
 export type ChattyMode = "summarize" | "hide" | "show";
 export type Order = "newest_first" | "oldest_first";
 
@@ -109,6 +110,8 @@ export interface WhatHappenedConfig {
   tap_action?: TapAction;
   max_height?: number;
   vacuum_details?: boolean;
+  activity?: Activity;
+  show_runs?: boolean;
   chatty?: ChattyMode;
   show_diagnostic?: boolean;
   hide_unavailable?: boolean;

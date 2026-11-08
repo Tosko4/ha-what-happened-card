@@ -47,6 +47,8 @@ const LABELS: Record<string, string> = {
   tap_action: "Tap action",
   max_height: "Maximum height",
   vacuum_details: "TapoVac-ADV: show cleaning runs with rooms, duration and reason",
+  activity: "What to show",
+  show_runs: "Show automation and script runs",
   chatty: "Very frequent entities",
   show_diagnostic: "Include diagnostic, configuration and hidden entities",
   hide_unavailable: "Hide unavailable / unknown states",
@@ -58,6 +60,8 @@ const HELPERS: Record<string, string> = {
   max_entries: "Between 1 and 500. Rapid repeats count as one entry when merging is on.",
   target: "Leave empty to show everything. Choose areas, devices, entities or labels to narrow it.",
   include_domains: "Leave empty for all domains. Pick from the list or type your own.",
+  activity:
+    "Recommended hides clocks, text and number sensors, update entities and automation runs that changed nothing you can see.",
   chatty:
     "Entities with at least 10 entries at a pace of one per hour or faster, such as a clock sensor or an automation that runs every 15 minutes.",
   max_height:
@@ -159,6 +163,19 @@ const DISPLAY_SCHEMA: Schema = [
 ];
 
 const RULES_SCHEMA: Schema = [
+  {
+    name: "activity",
+    selector: {
+      select: {
+        mode: "dropdown",
+        options: [
+          { value: "meaningful", label: "Things that happened (recommended)" },
+          { value: "everything", label: "Everything, including sensors and clocks" },
+        ],
+      },
+    },
+  },
+  { name: "show_runs", selector: { boolean: {} } },
   {
     name: "chatty",
     selector: {

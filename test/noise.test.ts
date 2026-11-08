@@ -24,7 +24,9 @@ const hass = makeHass(
   },
 );
 const items = (e: LogbookEntry[], c: Partial<WhatHappenedConfig> = {}) =>
-  buildTimeline(hass, e, cfg({ hours_to_show: 24, ...c }), NOW).flatMap((g) => g.items);
+  buildTimeline(hass, e, cfg({ hours_to_show: 24, activity: "everything", ...c }), NOW).flatMap(
+    (g) => g.items,
+  );
 
 const clock = Array.from({ length: 40 }, (_, i) =>
   entry({
@@ -136,5 +138,66 @@ describe("friendlyTrigger", () => {
   it("reads naturally", () => {
     expect(friendlyTrigger("event 'automation_triggered'")).toBe("another automation");
     expect(friendlyTrigger("time pattern")).toBe("time pattern");
+  });
+});
+
+describe("meaningful activity (default)", () => {
+  const meaningful = (e: LogbookEntry[], c: Partial<WhatHappenedConfig> = {}) =>
+    buildTimeline(hass, e, cfg(c), NOW).flatMap((g) => g.items);
+
+  it("leaves out clocks, update entities and plain automation runs", () => {
+    const noise = [
+      ...clock,
+      entry({ ago: 50, entity_id: "update.card", name: "Card Update", state: "on" }),
+      entry({
+        ago: 40,
+        entity_id: "automation.ai",
+        domain: "automation",
+        name: "AI summaries",
+        message: "triggered by time pattern",
+      }),
+      entry({ ago: 30, entity_id: "text.summary", name: "AI Summary", state: "A long text" }),
+    ];
+    expect(meaningful(noise)).toHaveLength(0);
+  });
+
+  it("keeps what people care about", () => {
+    const real = [
+      entry({ ago: 50, entity_id: "light.kitchen", name: "Kitchen light", state: "on" }),
+      entry({ ago: 40, entity_id: "person.jan", name: "Jan", state: "home" }),
+      entry({ ago: 30, entity_id: "lock.front", name: "Front door lock", state: "locked" }),
+    ];
+    expect(meaningful(real)).toHaveLength(3);
+  });
+
+  it("brings noise back on request, or when an entity is picked by name", () => {
+    expect(meaningful(clock, { activity: "everything" }).length).toBeGreaterThan(0);
+    expect(
+      meaningful(clock.slice(0, 2), { target: { entity_id: "sensor.date_time" } }),
+    ).toHaveLength(2);
+    const run = entry({
+      ago: 40,
+      entity_id: "automation.ai",
+      domain: "automation",
+      name: "AI summaries",
+      message: "triggered by time pattern",
+    });
+    expect(meaningful([run], { show_runs: true })).toHaveLength(1);
+  });
+
+  it("filters binary sensors by what they report", () => {
+    const h = makeHass([
+      state("binary_sensor.door", "on", { device_class: "door" }),
+      state("binary_sensor.wifi", "on", { device_class: "connectivity" }),
+    ]);
+    const run = (id: string) =>
+      buildTimeline(
+        h,
+        [entry({ ago: 30, entity_id: id, name: id, state: "on" })],
+        cfg(),
+        NOW,
+      ).flatMap((g) => g.items);
+    expect(run("binary_sensor.door")).toHaveLength(1);
+    expect(run("binary_sensor.wifi")).toHaveLength(0);
   });
 });

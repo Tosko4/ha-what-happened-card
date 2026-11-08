@@ -1,6 +1,7 @@
 import { resolveCause, runTrigger } from "./context";
 import { ACTOR_ICONS, fallbackIcon, stateColor } from "./appearance";
 import { REPLACED_STATES, REPLACE_WINDOW_MS } from "./vacuum";
+import { isMeaningful } from "./relevance";
 import { groupBursts, summarizeChatty } from "./noise";
 import { dayKey, formatDayLabel } from "./format";
 import { describeState } from "./state-message";
@@ -25,6 +26,7 @@ export const DEFAULTS = {
   tap_action: "more-info",
   vacuum_details: true,
   hide_unavailable: true,
+  activity: "meaningful",
   chatty: "summarize",
   show_diagnostic: false,
   collapse_repeats: true,
@@ -78,6 +80,12 @@ export function passesFilters(
   if (entry.entity_id && config.exclude_entities?.includes(entry.entity_id)) return false;
   if (config.include_domains?.length && !config.include_domains.includes(domain)) return false;
   if (config.exclude_domains?.includes(domain)) return false;
+  if (
+    (config.activity ?? DEFAULTS.activity) === "meaningful" &&
+    !isMeaningful(entry, config, hass)
+  ) {
+    return false;
+  }
   const hideUnavailable = config.hide_unavailable ?? DEFAULTS.hide_unavailable;
   if (hideUnavailable && (entry.state === "unavailable" || entry.state === "unknown")) return false;
   return true;
