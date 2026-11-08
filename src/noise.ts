@@ -167,7 +167,12 @@ const GROUP_WINDOW_MS = 30_000;
  * member doing the same thing. Show the group only. A member that changes alone (the group
  * stays on because other members are on) has no matching group entry and is kept.
  */
-export function hideGroupMembers(hass: HomeAssistant, items: TimelineItem[]): TimelineItem[] {
+export function hideGroupMembers(
+  hass: HomeAssistant,
+  items: TimelineItem[],
+  /** Entities the user asked for by name: never hidden. */
+  picked: ReadonlySet<string> = new Set(),
+): TimelineItem[] {
   const hidden = new Set<TimelineItem>();
   for (const group of items) {
     if (group.rich || !group.entityId) continue;
@@ -179,6 +184,7 @@ export function hideGroupMembers(hass: HomeAssistant, items: TimelineItem[]): Ti
         other !== group &&
         !other.rich &&
         other.entityId &&
+        !picked.has(other.entityId) &&
         memberIds.has(other.entityId) &&
         other.verb === group.verb &&
         Math.abs(other.when - group.when) <= GROUP_WINDOW_MS

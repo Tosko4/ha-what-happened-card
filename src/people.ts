@@ -9,12 +9,17 @@ import type { HomeAssistant, TimelineItem, WhatHappenedConfig } from "./types";
 
 const WINDOW_MS = 60_000;
 
+/** The deduplication below is part of the smart default view: choosing what to see turns it off. */
+export function smartFilteringOn(config: WhatHappenedConfig): boolean {
+  return (config.activity ?? "meaningful") === "meaningful" && !config.include_domains?.length;
+}
+
 export function foldTrackers(
   hass: HomeAssistant,
   items: TimelineItem[],
   config: WhatHappenedConfig,
 ): TimelineItem[] {
-  if ((config.activity ?? "meaningful") !== "meaningful") return items;
+  if (!smartFilteringOn(config)) return items;
   const picked = new Set([config.target?.entity_id ?? []].flat());
 
   for (const person of items) {

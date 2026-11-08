@@ -349,6 +349,19 @@ describe("light groups", () => {
     expect(result[0].cause?.actor?.name).toBe("Jedáleň svetlo 02");
   });
 
+  it("keeps members the user picked by name, or when they chose domains or everything", () => {
+    const both = [
+      off(100, "light.dining", "Svetlá jedáleň"),
+      off(100, "light.dining_1", "Jedáleň svetlo 01"),
+    ];
+    const run = (c: Partial<WhatHappenedConfig>) =>
+      buildTimeline(groupHass, both, cfg(c), NOW).flatMap((g) => g.items).length;
+    expect(run({})).toBe(1);
+    expect(run({ target: { entity_id: ["light.dining", "light.dining_1"] } })).toBe(2);
+    expect(run({ include_domains: ["light"] })).toBe(2);
+    expect(run({ activity: "everything" })).toBe(2);
+  });
+
   it("keeps a member that changed alone, while the group stayed on", () => {
     const result = shown([off(100, "light.dining_1", "Jedáleň svetlo 01")]);
     expect(result.map((i) => i.name)).toEqual(["Jedáleň svetlo 01"]);
@@ -415,5 +428,6 @@ describe("people and their devices", () => {
     expect(
       shown(both, { target: { entity_id: ["person.pavel", "device_tracker.moto"] } }),
     ).toHaveLength(2);
+    expect(shown(both, { include_domains: ["person", "device_tracker"] })).toHaveLength(2);
   });
 });

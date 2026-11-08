@@ -5,7 +5,7 @@ import type { ActionEvent } from "./trace";
 import { REPLACED_STATES, REPLACE_WINDOW_MS } from "./vacuum";
 import { RESTART_EXEMPT_DOMAINS, hasKnownCause, isMeaningful, isRunEntry } from "./relevance";
 import { groupBursts, hideGroupMembers, summarizeChatty } from "./noise";
-import { foldTrackers } from "./people";
+import { foldTrackers, smartFilteringOn } from "./people";
 import { dayKey, formatDayLabel } from "./format";
 import { describeState } from "./state-message";
 import type {
@@ -215,6 +215,15 @@ function mergeChains(items: TimelineItem[], hideExplainedRuns = true): TimelineI
   return items.filter((i) => !hidden.has(i));
 }
 
+function dedupe(
+  hass: HomeAssistant,
+  items: TimelineItem[],
+  config: WhatHappenedConfig,
+): TimelineItem[] {
+  if (!smartFilteringOn(config)) return items;
+  return hideGroupMembers(hass, items, new Set([config.target?.entity_id ?? []].flat()));
+}
+
 /**
  * Turn raw logbook entries into the grouped, filtered and limited structure the
  * card renders. Pure function so it can be unit-tested.
@@ -283,7 +292,7 @@ export function buildTimeline(
   const chained = mergeChains(converted, runs !== "all");
   const merged = groupBursts(
     summarizeChatty(
-      hideGroupMembers(hass, foldTrackers(hass, chained, config)),
+      dedupe(hass, foldTrackers(hass, chained, config), config),
       config.chatty ?? DEFAULTS.chatty,
     ),
   );
