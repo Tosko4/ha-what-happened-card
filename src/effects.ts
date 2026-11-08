@@ -54,13 +54,20 @@ function viaOf(effects: TimelineItem[]): Actor[] {
   return out;
 }
 
-function isScriptNoise(item: TimelineItem, picked: ReadonlySet<string>): boolean {
-  return (
-    item.domain === "script" &&
-    !item.isRun &&
-    !(item.entityId && picked.has(item.entityId)) &&
-    /^was turned (on|off)$/.test(item.verb)
-  );
+/** A script switching on and off is a script that ran. */
+function isScriptState(item: TimelineItem): boolean {
+  return item.domain === "script" && !item.isRun && /^was turned (on|off)$/.test(item.verb);
+}
+
+/** One "ran" line per script, however many times its state flipped. */
+function scriptRuns(states: TimelineItem[]): TimelineItem[] {
+  const seen = new Map<string, TimelineItem>();
+  for (const item of states) {
+    const key = item.entityId ?? item.name;
+    if (!seen.has(key))
+      seen.set(key, { ...item, verb: "ran", stateValue: undefined, tone: "active" });
+  }
+  return [...seen.values()];
 }
 
 function triggerOf(cluster: TimelineItem[]) {
@@ -114,12 +121,7 @@ function splitByTrigger(clusters: TimelineItem[][]): TimelineItem[][] {
   });
 }
 
-export function groupEffects(
-  hass: HomeAssistant,
-  items: TimelineItem[],
-  /** Entities the user asked to see. They are never dropped: they show as a line of the group. */
-  picked: ReadonlySet<string> = new Set(),
-): TimelineItem[] {
+export function groupEffects(hass: HomeAssistant, items: TimelineItem[]): TimelineItem[] {
   // Everything one automation or script did. Effects of one action happen within seconds of
   // each other; what each effect knows about its trigger varies (one logbook line names the
   // pressed button, the next does not), so the automation is what ties them together.
@@ -157,10 +159,11 @@ export function groupEffects(
       // One effect of a visible sensor is better told in one line. One effect of a person's
       // press, or of a press that is not worth a row by itself, is told as "pressed, which
       // caused ...", the same way as several effects.
-      // "TTS Announce Script was turned on / off" only says that the script ran: the group
-      // already is that run, so it is not a line of its own (unless the user asked for it).
-      const noise = cluster.filter((c) => isScriptNoise(c, picked));
-      const real = cluster.filter((c) => !noise.includes(c));
+      // "TTS Announce Script was turned on" and "turned off" are one thing: it ran. They do not
+      // count as separate effects, and appear as a single "ran" line.
+      const states = cluster.filter(isScriptState);
+      const real = cluster.filter((c) => !states.includes(c));
+      if (real.length === 0) continue;
       if (real.length < 2 && source?.cause?.actor?.kind !== "user" && !source?.soft) continue;
       cluster.splice(0, cluster.length, ...real);
       for (const item of loose) {
@@ -176,7 +179,7 @@ export function groupEffects(
       cluster.sort((a, b) => a.when - b.when);
       const first = cluster[0];
       const via = viaOf(cluster);
-      const effects = cluster.map(line);
+      const effects = [...cluster, ...scriptRuns(states)].sort((a, b) => a.when - b.when).map(line);
 
       let head: TimelineItem;
       if (source) {
@@ -210,7 +213,7 @@ export function groupEffects(
           accent: stateColor(kind, undefined, "on", "active", true),
         };
       }
-      for (const c of [...cluster, ...noise]) removed.add(c);
+      for (const c of [...cluster, ...states]) removed.add(c);
       added.push(head);
     }
   }

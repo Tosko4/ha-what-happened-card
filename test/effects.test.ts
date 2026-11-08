@@ -184,7 +184,7 @@ describe("one action, one entry", () => {
     expect(result[0].effects!.map((e) => e.name).join(" ")).toContain("3 text entities");
   });
 
-  it("does not list the script's own on/off as an effect", () => {
+  it("shows a script that switched on and off as one line that says it ran", () => {
     const withScript = [
       ...press,
       entry({
@@ -216,23 +216,12 @@ describe("one action, one entry", () => {
       () => say,
     ).flatMap((g) => g.items);
     expect(result).toHaveLength(1);
-    expect(result[0].effects!.map((e) => e.name)).not.toContain("TTS Announce Script");
-    // asked for by name: it stays visible, as a line of the group
-    const picked = buildTimeline(
-      scriptHass,
-      withScript,
-      cfg({
-        also_show_domains: ["text", "input_select", "script"],
-        also_show_entities: ["script.tts"],
-      }),
-      NOW,
-      undefined,
-      undefined,
-      () => say,
-    ).flatMap((g) => g.items);
-    expect(picked.flatMap((i) => i.effects ?? []).map((e) => e.name)).toContain(
-      "TTS Announce Script",
-    );
+    const lines = result[0].effects!.map((e) => `${e.name} ${e.verb}`);
+    expect(lines.filter((l) => l.startsWith("TTS Announce Script"))).toEqual([
+      "TTS Announce Script ran",
+    ]);
+    expect(lines.join(" ")).not.toContain("turned on");
+    expect(lines.join(" ")).not.toContain("turned off");
   });
 
   it("is off when the user picks what to see", () => {
