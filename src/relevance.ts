@@ -5,6 +5,10 @@ import type { HomeAssistant, LogbookEntry, WhatHappenedConfig } from "./types";
  * that were switched, opened, locked, armed, started or that people did and arrived.
  * Clocks, text and number sensors, update entities and the internal runs of automations
  * are not, so by default the card leaves them out (`activity: everything` shows them).
+ *
+ * Automation and script runs are different: when one did something that left no trace of its
+ * own (a spoken announcement, a notification), the run is the only record, so it is shown
+ * unless a visible effect already explains it.
  */
 export const MEANINGFUL_DOMAINS = new Set([
   "light",
@@ -80,7 +84,7 @@ export function isMeaningful(
   if (entry.entity_id && picked.includes(entry.entity_id)) return true;
   if (config.include_domains?.length) return true; // the user chose domains explicitly
 
-  if (isRunEntry(entry)) return config.show_runs === true;
+  if (isRunEntry(entry)) return (config.automation_runs ?? "unexplained") !== "hidden";
   if (!MEANINGFUL_DOMAINS.has(domain)) return false;
   if (domain === "binary_sensor" && entry.entity_id) {
     const deviceClass = hass?.states[entry.entity_id]?.attributes.device_class;

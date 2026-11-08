@@ -4,6 +4,7 @@ import { classMap } from "lit/directives/class-map.js";
 import { styleMap } from "lit/directives/style-map.js";
 import { formatDateTime, formatRelative, formatTime } from "./format";
 import { subscribeLogbook } from "./logbook";
+import { TraceCache, describeActions } from "./trace";
 import { findTapoVacuums, vacuumItems, type HistoryRun, type VacuumData } from "./vacuum";
 import { cardStyles } from "./styles";
 import { hasTarget, resolveTargetEntities } from "./targets";
@@ -58,6 +59,7 @@ export class WhatHappenedCard extends LitElement {
   private _vacKey?: string;
   private _vacUnsubs: Array<() => void> = [];
   private _vacToken = 0;
+  private _traces?: TraceCache;
   private _registryRefs: unknown[] = [];
 
   public setConfig(config: WhatHappenedConfig): void {
@@ -78,6 +80,7 @@ export class WhatHappenedCard extends LitElement {
   set hass(hass: HomeAssistant) {
     const first = !this._hass;
     this._hass = hass;
+    this._traces?.setHass(hass);
     const registries = [hass.entities, hass.devices, hass.areas];
     const registriesChanged = registries.some((r, i) => r !== this._registryRefs[i]);
     this._registryRefs = registries;
@@ -281,7 +284,7 @@ export class WhatHappenedCard extends LitElement {
   private _recompute(): void {
     if (!this._hass || !this._config) return;
     this._now = Date.now();
-    this._groups = buildTimeline(
+    const groups = buildTimeline(
       this._hass,
       this._entries.values(),
       this._config,
@@ -289,6 +292,38 @@ export class WhatHappenedCard extends LitElement {
       this._allowed,
       this._extraItems(),
     );
+    this._applyActions(groups);
+    this._groups = groups;
+  }
+
+  /** Add what automations said or sent (spoken text, notifications) from their run traces. */
+  private _applyActions(groups: DayGroup[]): void {
+    const hass = this._hass;
+    if (!hass || !this._config || this._config.show_actions === false) return;
+    const cache = (this._traces ??= new TraceCache(hass));
+    let budget = 40;
+    for (const group of groups) {
+      for (const item of group.items) {
+        if (item.rich) continue;
+        const actor = item.cause?.actor;
+        const byAutomation =
+          actor?.entityId && (actor.kind === "automation" || actor.kind === "script");
+        const target =
+          item.isRun && item.entityId
+            ? { id: item.entityId, generic: true, before: 15_000 }
+            : byAutomation
+              ? { id: actor.entityId!, generic: false, before: 600_000 }
+              : undefined;
+        if (!target) continue;
+        const trace = cache.lookup(target.id, item.when, target.before);
+        if (trace) {
+          const lines = describeActions(hass, trace, target.generic);
+          if (lines.length) item.lines = lines;
+        } else if (budget-- > 0) {
+          cache.ensure(target.id, item.when, target.before)?.then(() => this._scheduleRecompute());
+        }
+      }
+    }
   }
 
   private _extraItems() {
@@ -447,6 +482,7 @@ export class WhatHappenedCard extends LitElement {
                 ? html`<div class="secondary">${item.details.join(" · ")}</div>`
                 : nothing
             }
+            ${item.lines?.map((line) => html`<div class="secondary">${line}</div>`)}
             ${showCause ? this._renderCause(item, avatars) : nothing}
           </div>
           ${this._renderTime(item, config)}

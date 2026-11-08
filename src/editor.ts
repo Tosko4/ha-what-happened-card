@@ -48,7 +48,8 @@ const LABELS: Record<string, string> = {
   max_height: "Maximum height",
   vacuum_details: "TapoVac-ADV: show cleaning runs with rooms, duration and reason",
   activity: "What to show",
-  show_runs: "Show automation and script runs",
+  automation_runs: "Automation and script runs",
+  show_actions: "Show what automations said or sent (needs admin)",
   chatty: "Very frequent entities",
   show_diagnostic: "Include diagnostic, configuration and hidden entities",
   hide_unavailable: "Hide unavailable / unknown states",
@@ -60,8 +61,9 @@ const HELPERS: Record<string, string> = {
   max_entries: "Between 1 and 500. Rapid repeats count as one entry when merging is on.",
   target: "Leave empty to show everything. Choose areas, devices, entities or labels to narrow it.",
   include_domains: "Leave empty for all domains. Pick from the list or type your own.",
-  activity:
-    "Recommended hides clocks, text and number sensors, update entities and automation runs that changed nothing you can see.",
+  activity: "Recommended hides clocks, text and number sensors and update entities.",
+  automation_runs:
+    "A run that switched something is folded into that change. A run with no visible result, such as a spoken announcement, is shown on its own.",
   chatty:
     "Entities with at least 10 entries at a pace of one per hour or faster, such as a clock sensor or an automation that runs every 15 minutes.",
   max_height:
@@ -175,7 +177,19 @@ const RULES_SCHEMA: Schema = [
       },
     },
   },
-  { name: "show_runs", selector: { boolean: {} } },
+  {
+    name: "automation_runs",
+    selector: {
+      select: {
+        mode: "dropdown",
+        options: [
+          { value: "unexplained", label: "When nothing else shows what they did (recommended)" },
+          { value: "all", label: "Always" },
+          { value: "hidden", label: "Never" },
+        ],
+      },
+    },
+  },
   {
     name: "chatty",
     selector: {
@@ -189,6 +203,7 @@ const RULES_SCHEMA: Schema = [
       },
     },
   },
+  { name: "show_actions", selector: { boolean: {} } },
   { name: "show_diagnostic", selector: { boolean: {} } },
   { name: "vacuum_details", selector: { boolean: {} } },
   { name: "hide_unavailable", selector: { boolean: {} } },

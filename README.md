@@ -68,7 +68,7 @@ exclude_domains:
 | `max_height`       | –              | Pixels; for Masonry/Panel views                                           |
 | `vacuum_details`   | `true`         | Rich entries for TapoVac-ADV vacuums (rooms, duration, reason)            |
 | `activity`         | `meaningful`   | `meaningful` or `everything` (clocks, sensors, updates, …)                |
-| `show_runs`        | `false`        | Show plain automation and script runs                                     |
+| `automation_runs`  | `unexplained`  | `unexplained`, `all` or `hidden` (see below)                              |
 | `chatty`           | `summarize`    | Very frequent entities: `summarize`, `hide` or `show`                     |
 | `show_diagnostic`  | `false`        | Include diagnostic, configuration and hidden entities                     |
 | `hide_unavailable` | `true`         | Hide `unavailable` / `unknown` states                                     |
@@ -82,9 +82,10 @@ The card works out what is worth showing, so you do not have to pick entities by
 
 **Shows things that happened:** lights, switches, locks, covers, doors and windows, motion, alarm, media players, vacuums, climate, scenes and people arriving or leaving, each with who or what caused it.
 
-**Leaves out by default:** clocks, text and number sensors, update entities, diagnostic / configuration / hidden entities, and automation or script runs that did not change anything you can see. A run is folded into what it did: "Living room light was turned on by Motion light, triggered by Hallway motion detected motion".
+**Leaves out by default:** clocks, text and number sensors, update entities, diagnostic / configuration / hidden entities, and a run that only repeats something already shown. A run is folded into what it did: "Living room light was turned on by Motion light, triggered by Hallway motion detected motion".
 
-- `activity: everything` shows all of it again; `show_runs: true` adds the plain automation and script runs. Picking an entity by name in `target`, or domains in `include_domains`, always shows them.
+- `activity: everything` shows all of it again. Picking an entity by name in `target`, or domains in `include_domains`, always shows them.
+- **Automations and scripts:** when a run switched something, the change is shown with "by <automation>, triggered by …". When a run left no visible trace (a spoken announcement, a notification), the run itself is shown, so what an automation did is never lost. `automation_runs: all` always lists runs next to what they did, `hidden` never shows them.
 - Whatever is still very frequent (at least 10 entries at one per hour or faster) is summarized in one entry such as "Kitchen light changed 24 times". `chatty: hide` drops it, `chatty: show` lists every entry.
 - Bursts, like 20 entities switching in the same second, become one entry that lists the members.
 - Automations triggered by other automations read "triggered by another automation"; long values are shortened.

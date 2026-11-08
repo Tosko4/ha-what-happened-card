@@ -145,20 +145,62 @@ describe("meaningful activity (default)", () => {
   const meaningful = (e: LogbookEntry[], c: Partial<WhatHappenedConfig> = {}) =>
     buildTimeline(hass, e, cfg(c), NOW).flatMap((g) => g.items);
 
-  it("leaves out clocks, update entities and plain automation runs", () => {
+  it("leaves out clocks, text sensors and update entities", () => {
     const noise = [
       ...clock,
       entry({ ago: 50, entity_id: "update.card", name: "Card Update", state: "on" }),
-      entry({
-        ago: 40,
-        entity_id: "automation.ai",
-        domain: "automation",
-        name: "AI summaries",
-        message: "triggered by time pattern",
-      }),
       entry({ ago: 30, entity_id: "text.summary", name: "AI Summary", state: "A long text" }),
     ];
     expect(meaningful(noise)).toHaveLength(0);
+  });
+
+  describe("automation runs", () => {
+    const run = entry({
+      ago: 40,
+      entity_id: "automation.ai",
+      domain: "automation",
+      name: "AI summaries",
+      message: "triggered by time pattern",
+      source: "time pattern",
+    });
+    const effect = entry({
+      ago: 39,
+      entity_id: "light.kitchen",
+      name: "Kitchen light",
+      state: "on",
+      context_event_type: "automation_triggered",
+      context_entity_id: "automation.ai",
+      context_source: "time pattern",
+    });
+
+    it("shows a run that left no visible trace (spoken announcement, notification)", () => {
+      const result = meaningful([run]);
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("AI summaries");
+      expect(result[0].cause?.trigger).toBe("time pattern");
+    });
+
+    it("folds a run into the change it made", () => {
+      const result = meaningful([run, effect]);
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("Kitchen light");
+      expect(result[0].cause?.actor?.name).toBe("AI summaries");
+    });
+
+    it("can show every run, or none", () => {
+      expect(meaningful([run, effect], { automation_runs: "all" })).toHaveLength(2);
+      expect(meaningful([run], { automation_runs: "hidden" })).toHaveLength(0);
+    });
+
+    it("still summarizes a run that fires all the time", () => {
+      const runs = Array.from({ length: 14 }, (_, i) => ({
+        ...run,
+        when: NOW / 1000 - 900 * (i + 1),
+      }));
+      const result = meaningful(runs);
+      expect(result).toHaveLength(1);
+      expect(result[0].verb).toBe("was triggered 14 times");
+    });
   });
 
   it("keeps what people care about", () => {
@@ -175,14 +217,6 @@ describe("meaningful activity (default)", () => {
     expect(
       meaningful(clock.slice(0, 2), { target: { entity_id: "sensor.date_time" } }),
     ).toHaveLength(2);
-    const run = entry({
-      ago: 40,
-      entity_id: "automation.ai",
-      domain: "automation",
-      name: "AI summaries",
-      message: "triggered by time pattern",
-    });
-    expect(meaningful([run], { show_runs: true })).toHaveLength(1);
   });
 
   it("filters binary sensors by what they report", () => {

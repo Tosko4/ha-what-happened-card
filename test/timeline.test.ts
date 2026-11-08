@@ -117,7 +117,7 @@ describe("buildTimeline", () => {
             source: "state of light.kitchen",
           }),
         ],
-        cfg({ show_runs: true }),
+        cfg(),
         NOW,
       ),
     );
@@ -182,7 +182,7 @@ describe("chain merging", () => {
   });
 
   it("keeps an automation run that had no visible effect", () => {
-    const items = flat(buildTimeline(hass, [chain[1]], cfg({ show_runs: true }), NOW));
+    const items = flat(buildTimeline(hass, [chain[1]], cfg(), NOW));
     expect(items).toHaveLength(1);
     expect(items[0].verb).toBe("was triggered");
   });

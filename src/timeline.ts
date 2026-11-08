@@ -27,6 +27,8 @@ export const DEFAULTS = {
   vacuum_details: true,
   hide_unavailable: true,
   activity: "meaningful",
+  automation_runs: "unexplained",
+  show_actions: true,
   chatty: "summarize",
   show_diagnostic: false,
   collapse_repeats: true,
@@ -174,7 +176,7 @@ function isStandIn(
  * automation that switched a device, only the device entry is kept. It explains
  * the whole chain, so the automation run and the triggering state change are folded in.
  */
-function mergeChains(items: TimelineItem[]): TimelineItem[] {
+function mergeChains(items: TimelineItem[], hideExplainedRuns = true): TimelineItem[] {
   const hidden = new Set<TimelineItem>();
   for (const effect of items) {
     const actor = effect.cause?.actor;
@@ -182,6 +184,7 @@ function mergeChains(items: TimelineItem[]): TimelineItem[] {
 
     for (const run of items) {
       if (
+        hideExplainedRuns &&
         run.isRun &&
         run.entityId === actor.entityId &&
         Math.abs(run.when - effect.when) <= CHAIN_WINDOW_MS
@@ -244,6 +247,8 @@ export function buildTimeline(
     [...sorted.map((entry) => toItem(hass, entry, config)), ...richItems].sort(
       (a, b) => b.when - a.when,
     ),
+    // With automation_runs: all, runs stay visible next to what they did.
+    (config.automation_runs ?? DEFAULTS.automation_runs) !== "all",
   );
   const merged = groupBursts(summarizeChatty(chained, config.chatty ?? DEFAULTS.chatty));
 
@@ -294,5 +299,6 @@ export function plainSentence(item: TimelineItem): string {
   if (cause?.actor) text += ` by ${cause.actor.name}`;
   if (cause?.trigger) text += `, triggered by ${cause.trigger}`;
   if (item.details?.length) text += ` (${item.details.join(", ")})`;
+  if (item.lines?.length) text += `. ${item.lines.join(". ")}`;
   return text;
 }

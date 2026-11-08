@@ -104,6 +104,8 @@ const states = [
   ["media_player.tv", "playing", { friendly_name: "Living room TV" }],
   ["switch.pump", "on", { friendly_name: "Irrigation pump" }],
   ["vacuum.robot", "docked", { friendly_name: "Robot vacuum" }],
+  ["automation.tts", "on", { friendly_name: "Announce visitor", id: "1700000000" }],
+  ["media_player.kitchen", "idle", { friendly_name: "Kitchen speaker" }],
   ["sensor.date_time", "2026-11-08, 15:19", { friendly_name: "Date & Time" }],
   ["automation.ai", "on", { friendly_name: "AI summaries" }],
   ["switch.status_led", "on", { friendly_name: "Status LED" }],
@@ -222,9 +224,18 @@ const plannerLog = [
     text: "Started cleaning Kitchen and Hallway. Kitchen: 6 days since last clean; nobody home.",
   },
   { ts: m(54), kind: "done", text: "Finished cleaning Kitchen and Hallway." },
+  { ts: m(31), kind: "return", text: "Ján came home: finishing the kitchen, then docking." },
   { ts: m(30), kind: "docked", text: "Sent home: someone is home." },
 ];
 // Typical noise from a real installation: all of it is handled without any configuration.
+events.push({
+  when: m(5),
+  entity_id: "automation.tts",
+  domain: "automation",
+  name: "Announce visitor",
+  message: "triggered by state of binary_sensor.front_door",
+  source: "state of binary_sensor.front_door",
+} as LogbookEntry);
 events.push(
   ...Array.from(
     { length: 90 },
@@ -286,7 +297,27 @@ const hass: HomeAssistant = {
   devices: {},
   areas: {},
   locale: { language: "en", time_format: "24" },
-  callWS: async (msg: any) => (msg.type === "tapo_rv30/history/list" ? { runs: vacuumRuns } : {}),
+  callWS: async (msg: any) => {
+    if (msg.type === "tapo_rv30/history/list") return { runs: vacuumRuns };
+    if (msg.type === "trace/list") {
+      return [{ run_id: "r1", timestamp: { start: new Date((m(5) - 1) * 1000).toISOString() } }];
+    }
+    if (msg.type === "trace/get") {
+      const call = (domain: string, service: string, service_data: object) => [
+        { result: { params: { domain, service, service_data } } },
+      ];
+      return {
+        trace: {
+          "action/0": call("tts", "speak", {
+            message: "Someone is at the front door",
+            media_player_entity_id: "media_player.kitchen",
+          }),
+          "action/1": call("notify", "mobile_app_phone", { message: "Visitor at the door" }),
+        },
+      };
+    }
+    return {};
+  },
   connection: {
     subscribeMessage: async (cb: (m: any) => void, msg: any) => {
       if (msg.type === "tapo_rv30/planner/subscribe") {

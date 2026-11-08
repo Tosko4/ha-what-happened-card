@@ -107,6 +107,70 @@ describe("vacuumItems", () => {
   });
 });
 
+describe("sent home", () => {
+  const people = makeHass(
+    [
+      state("vacuum.robot", "docked", { friendly_name: "Robot vacuum" }),
+      state("person.jan", "home", { friendly_name: "Jan", entity_picture: "/jan.png" }),
+    ],
+    { entities: { "vacuum.robot": { entity_id: "vacuum.robot", platform: "tapo_rv30" } } },
+  );
+
+  it("says who came home and made the planner send the robot home", () => {
+    const items = vacuumItems(
+      people,
+      {
+        entityId: "vacuum.robot",
+        runs: [],
+        log: [
+          {
+            ts: s - 300,
+            kind: "return",
+            text: "Jan came home: finishing the kitchen, then docking.",
+          },
+          { ts: s - 120, kind: "docked", text: "Sent home: someone is home." },
+        ],
+      },
+      cfg,
+    );
+    expect(items).toHaveLength(1);
+    expect(items[0].verb).toBe("was sent home");
+    expect(items[0].cause?.actor).toMatchObject({ name: "Jan", picture: "/jan.png" });
+    expect(items[0].cause?.trigger).toBe("coming home");
+    expect(items[0].details).toEqual(["Finishing the kitchen, then docking"]);
+  });
+
+  it("names several people and still works without the matching log line", () => {
+    const [two] = vacuumItems(
+      people,
+      {
+        entityId: "vacuum.robot",
+        runs: [],
+        log: [
+          {
+            ts: s - 300,
+            kind: "return",
+            text: "Jan and Veronika came home: finishing this room, then docking.",
+          },
+          { ts: s - 120, kind: "docked", text: "Sent home: someone is home." },
+        ],
+      },
+      cfg,
+    );
+    expect(two.cause?.actor?.name).toBe("Jan and Veronika");
+    const [alone] = vacuumItems(
+      people,
+      {
+        entityId: "vacuum.robot",
+        runs: [],
+        log: [{ ts: s - 60, kind: "docked", text: "Sent home: someone is home." }],
+      },
+      cfg,
+    );
+    expect(alone.text).toBe("Sent home: someone is home");
+  });
+});
+
 describe("timeline with vacuum data", () => {
   it("keeps a logbook line when its integration entry is outside the window", () => {
     const oldRun: VacuumData = {

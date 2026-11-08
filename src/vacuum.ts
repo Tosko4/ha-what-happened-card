@@ -89,6 +89,28 @@ function nearestStart(log: PlannerLogEntry[], startedS: number, used: Set<Planne
   return best;
 }
 
+/** "Jan and Veronika came home: finishing the kitchen, then docking." */
+export function parseReturn(text: string): { people: string; note: string } | undefined {
+  const m = text.match(/^(.+?) came home: (.*?)\.?$/s);
+  return m ? { people: m[1], note: m[2] } : undefined;
+}
+
+function peopleActor(hass: HomeAssistant, people: string): Actor {
+  const names = people.split(/, | and /).map((n) => n.trim());
+  const found =
+    names.length === 1
+      ? Object.values(hass.states).find(
+          (s) => s.entity_id.startsWith("person.") && s.attributes.friendly_name === names[0],
+        )
+      : undefined;
+  return {
+    kind: "user",
+    name: people,
+    entityId: found?.entity_id,
+    picture: found?.attributes.entity_picture,
+  };
+}
+
 function plannerActor(): Actor {
   return { kind: "other", name: "Cleaning planner", icon: "mdi:calendar-clock" };
 }
@@ -180,6 +202,20 @@ export function vacuumItems(
     });
   }
 
+  // "Sent home" is the planner's reaction to someone coming home: say who.
+  const returns = data.log.filter((e) => e.kind === "return");
+  const returnFor = new Map<PlannerLogEntry, PlannerLogEntry>();
+  const taken = new Set<PlannerLogEntry>();
+  for (const docked of data.log.filter((e) => e.kind === "docked")) {
+    const source = returns.find(
+      (r) => !taken.has(r) && r.ts <= docked.ts && docked.ts - r.ts <= 30 * 60,
+    );
+    if (source) {
+      returnFor.set(docked, source);
+      taken.add(source);
+    }
+  }
+
   // Planner events that no finished run explains (still running, no record kept, other events).
   const covered = new Set(data.runs.map((r) => r.started));
   for (const entry of data.log) {
@@ -191,7 +227,24 @@ export function vacuumItems(
     )
       continue;
 
+    if (taken.has(entry)) continue; // folded into the "sent home" entry below
     const parsed = entry.kind === "start" ? parseStart(entry.text) : undefined;
+    const returned = entry.kind === "docked" ? returnFor.get(entry) : undefined;
+    const arrival = returned ? parseReturn(returned.text) : undefined;
+    if (arrival) {
+      items.push({
+        ...base,
+        key: `vac|${data.entityId}|log|${entry.ts}|docked`,
+        when: entry.ts * 1000,
+        verb: "was sent home",
+        tone: "neutral",
+        icon: "mdi:robot-vacuum",
+        details: [arrival.note.charAt(0).toUpperCase() + arrival.note.slice(1)],
+        cause: { actor: peopleActor(hass, arrival.people), trigger: "coming home" },
+        accent: stateColor("vacuum", undefined, "docked", "inactive", useColor),
+      });
+      continue;
+    }
     const tone = entry.kind === "error" ? "alert" : entry.kind === "start" ? "active" : "neutral";
     items.push({
       ...base,
