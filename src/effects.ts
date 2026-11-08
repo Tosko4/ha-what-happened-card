@@ -74,27 +74,37 @@ function triggerOf(cluster: TimelineItem[]) {
 }
 
 /**
- * Two different triggers inside one burst (two buttons pressed within seconds) are two actions.
- * Effects that do not name their trigger join the nearest one.
+ * Which trigger an effect belongs to. The entity that started the automation identifies it
+ * whether or not its own log row is available; without an entity, the trigger text does.
  */
-function splitBySource(clusters: TimelineItem[][]): TimelineItem[][] {
+function triggerKey(item: TimelineItem, useText: boolean): string | undefined {
+  const cause = item.cause;
+  const entity = cause?.triggerEntityId ?? cause?.source?.entityId;
+  if (entity) return `entity|${entity}`;
+  return useText && cause?.trigger ? `text|${cause.trigger}` : undefined;
+}
+
+/**
+ * Two different triggers inside one burst (two buttons pressed within seconds) are two actions.
+ * Effects that do not say what triggered them join the nearest one.
+ */
+function splitByTrigger(clusters: TimelineItem[][]): TimelineItem[][] {
   return clusters.flatMap((cluster) => {
-    const sources = new Map<string, TimelineItem>();
+    const anyEntity = cluster.some((c) => c.cause?.triggerEntityId ?? c.cause?.source?.entityId);
+    const keyOf = (c: TimelineItem) => triggerKey(c, !anyEntity);
+    const keyed = cluster.filter((c) => keyOf(c));
+    const keys = new Set(keyed.map((c) => keyOf(c)!));
+    if (keys.size <= 1) return [cluster];
+    const parts = new Map<string, TimelineItem[]>([...keys].map((k) => [k, []]));
     for (const c of cluster) {
-      const source = c.cause?.source;
-      if (source) sources.set(source.key, source);
-    }
-    if (sources.size <= 1) return [cluster];
-    const parts = new Map<string, TimelineItem[]>([...sources.keys()].map((k) => [k, []]));
-    for (const c of cluster) {
-      let key = c.cause?.source?.key;
+      let key = keyOf(c);
       if (!key) {
         let best = Infinity;
-        for (const [k, source] of sources) {
-          const gap = Math.abs(source.when - c.when);
+        for (const other of keyed) {
+          const gap = Math.abs(other.when - c.when);
           if (gap < best) {
             best = gap;
-            key = k;
+            key = keyOf(other);
           }
         }
       }
@@ -141,16 +151,17 @@ export function groupEffects(
       else clusters.push([item]);
     }
 
-    for (const cluster of splitBySource(clusters)) {
+    for (const cluster of splitByTrigger(clusters)) {
       cluster.sort((a, b) => a.when - b.when);
       const source = cluster.find((c) => c.cause?.source)?.cause?.source;
-      // One effect of a sensor is better told in one line; one effect of a person's press is
-      // told as "pressed by Ján, which caused ...".
+      // One effect of a visible sensor is better told in one line. One effect of a person's
+      // press, or of a press that is not worth a row by itself, is told as "pressed, which
+      // caused ...", the same way as several effects.
       // "TTS Announce Script was turned on / off" only says that the script ran: the group
       // already is that run, so it is not a line of its own (unless the user asked for it).
       const noise = cluster.filter((c) => isScriptNoise(c, picked));
       const real = cluster.filter((c) => !noise.includes(c));
-      if (real.length < 2 && source?.cause?.actor?.kind !== "user") continue;
+      if (real.length < 2 && source?.cause?.actor?.kind !== "user" && !source?.soft) continue;
       cluster.splice(0, cluster.length, ...real);
       for (const item of loose) {
         if (

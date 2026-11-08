@@ -406,3 +406,64 @@ describe("any action, not just one button", () => {
     expect(result.map((i) => i.name).sort()).toEqual(["4 – Prídem onedlho", "Other"].sort());
   });
 });
+
+describe("review findings", () => {
+  const viaPress = (id: string) => ({
+    context_event_type: "automation_triggered",
+    context_entity_id: "automation.code",
+    context_source: `${id} was pressed`,
+  });
+
+  it("keeps two triggers apart even when their own rows are not in the log", () => {
+    const hassTwo = makeHass([
+      ...Object.values(hass.states),
+      state("input_button.a", "unknown", { friendly_name: "Button A" }),
+      state("input_button.b", "unknown", { friendly_name: "Button B" }),
+    ]);
+    const entries = [
+      entry({
+        ago: 100,
+        entity_id: "text.b35",
+        name: 'JadivClock 3.5" Broadcast',
+        state: "A",
+        ...viaPress("input_button.a"),
+      }),
+      entry({
+        ago: 100,
+        entity_id: "text.b24",
+        name: 'JadivClock 2.4" Broadcast',
+        state: "A",
+        ...viaPress("input_button.a"),
+      }),
+      entry({
+        ago: 95,
+        entity_id: "text.b35",
+        name: 'JadivClock 3.5" Broadcast',
+        state: "B",
+        ...viaPress("input_button.b"),
+      }),
+      entry({
+        ago: 95,
+        entity_id: "text.b24",
+        name: 'JadivClock 2.4" Broadcast',
+        state: "B",
+        ...viaPress("input_button.b"),
+      }),
+    ];
+    const result = buildTimeline(hassTwo, entries, cfg(), NOW).flatMap((g) => g.items);
+    expect(result).toHaveLength(2);
+    expect(result.map((i) => i.cause?.trigger).sort()).toEqual([
+      "Button A was pressed",
+      "Button B was pressed",
+    ]);
+  });
+
+  it("heads a single effect by the press when the press is not worth a row by itself", () => {
+    const result = build([press[0], press[1]].map((e) => ({ ...e, context_user_id: undefined })));
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe("4 – Prídem onedlho");
+    expect(result[0].effects!.map((e) => `${e.name} ${e.verb}`)).toEqual([
+      "Atom Echo 01 said “Kod 4”",
+    ]);
+  });
+});

@@ -274,8 +274,8 @@ const Ht = (t, e) => {
   let s, o = e === 2 ? "<svg>" : e === 3 ? "<math>" : "", r = W;
   for (let a = 0; a < n; a++) {
     const c = t[a];
-    let l, h, p = -1, g = 0;
-    for (; g < c.length && (r.lastIndex = g, h = r.exec(c), h !== null); ) g = r.lastIndex, r === W ? h[1] === "!--" ? r = Pe : h[1] !== void 0 ? r = Ne : h[2] !== void 0 ? (rt.test(h[2]) && (s = RegExp("</" + h[2], "g")), r = C) : h[3] !== void 0 && (r = C) : r === C ? h[0] === ">" ? (r = s ?? W, p = -1) : h[1] === void 0 ? p = -2 : (p = r.lastIndex - h[2].length, l = h[1], r = h[3] === void 0 ? C : h[3] === '"' ? Ue : De) : r === Ue || r === De ? r = C : r === Pe || r === Ne ? r = W : (r = C, s = void 0);
+    let l, u, p = -1, g = 0;
+    for (; g < c.length && (r.lastIndex = g, u = r.exec(c), u !== null); ) g = r.lastIndex, r === W ? u[1] === "!--" ? r = Pe : u[1] !== void 0 ? r = Ne : u[2] !== void 0 ? (rt.test(u[2]) && (s = RegExp("</" + u[2], "g")), r = C) : u[3] !== void 0 && (r = C) : r === C ? u[0] === ">" ? (r = s ?? W, p = -1) : u[1] === void 0 ? p = -2 : (p = r.lastIndex - u[2].length, l = u[1], r = u[3] === void 0 ? C : u[3] === '"' ? Ue : De) : r === Ue || r === De ? r = C : r === Pe || r === Ne ? r = W : (r = C, s = void 0);
     const d = r === C && t[a + 1].startsWith("/>") ? " " : "";
     o += r === W ? c + Nt : p >= 0 ? (i.push(l), c.slice(0, p) + st + c.slice(p) + S + d) : c + S + (p === -2 ? a : d);
   }
@@ -286,7 +286,7 @@ class Y {
     let s;
     this.parts = [];
     let o = 0, r = 0;
-    const a = e.length - 1, c = this.parts, [l, h] = Ht(e, n);
+    const a = e.length - 1, c = this.parts, [l, u] = Ht(e, n);
     if (this.el = Y.createElement(l, i), T.currentNode = this.el.content, n === 2 || n === 3) {
       const p = this.el.content.firstChild;
       p.replaceWith(...p.childNodes);
@@ -294,7 +294,7 @@ class Y {
     for (; (s = T.nextNode()) !== null && c.length < a; ) {
       if (s.nodeType === 1) {
         if (s.hasAttributes()) for (const p of s.getAttributeNames()) if (p.endsWith(st)) {
-          const g = h[r++], d = s.getAttribute(p).split(S), f = /([.?@])?(.*)/.exec(g);
+          const g = u[r++], d = s.getAttribute(p).split(S), f = /([.?@])?(.*)/.exec(g);
           c.push({ type: 1, index: o, name: f[2], strings: d, ctor: f[1] === "." ? jt : f[1] === "?" ? Lt : f[1] === "@" ? Wt : ie }), s.removeAttribute(p);
         } else p.startsWith(S) && (c.push({ type: 6, index: o }), s.removeAttribute(p));
         if (rt.test(s.tagName)) {
@@ -849,7 +849,7 @@ function mn(t) {
             ...re(r.media_player_entity_id),
             ...re(r.entity_id),
             ...re(o.target?.entity_id)
-          ].filter((h) => h.startsWith("media_player."));
+          ].filter((u) => u.startsWith("media_player."));
           e.push({ kind: "say", text: a, speakers: [...new Set(l)], service: c });
         } else (o.domain === "notify" || o.domain === "persistent_notification") && e.push({
           kind: "notify",
@@ -900,8 +900,8 @@ class vn {
     if (a && this.details.has(`${o}|${a.run_id}`)) return;
     const c = `${o}|${a?.run_id ?? Math.floor(n / 6e4)}`, l = this.tried.get(c);
     if (l && Date.now() - l < gn) return;
-    const h = this.inflight.get(c);
-    if (h) return h;
+    const u = this.inflight.get(c);
+    if (u) return u;
     const p = (async () => {
       this.tried.set(c, Date.now());
       try {
@@ -1063,17 +1063,17 @@ function Tn(t, e, n) {
       accent: w ? We : O("vacuum", void 0, "docked", "inactive", o)
     });
   }
-  const l = e.log.filter((d) => d.kind === "return"), h = /* @__PURE__ */ new Map(), p = /* @__PURE__ */ new Set();
+  const l = e.log.filter((d) => d.kind === "return"), u = /* @__PURE__ */ new Map(), p = /* @__PURE__ */ new Set();
   for (const d of e.log.filter((f) => f.kind === "docked")) {
     const f = l.find(
       (b) => !p.has(b) && b.ts <= d.ts && d.ts - b.ts <= 1800
     );
-    f && (h.set(d, f), p.add(f));
+    f && (u.set(d, f), p.add(f));
   }
   const g = new Set(e.runs.map((d) => d.started));
   for (const d of e.log) {
     if (!kn.has(d.kind) || a.has(d) || d.kind === "done" && e.runs.length > 0 || d.kind === "start" && [...g].some((y) => Math.abs(y - d.ts) <= mt) || p.has(d)) continue;
-    const f = d.kind === "start" ? Ve(d.text) : void 0, b = d.kind === "docked" ? h.get(d) : void 0, w = b ? En(b.text) : void 0;
+    const f = d.kind === "start" ? Ve(d.text) : void 0, b = d.kind === "docked" ? u.get(d) : void 0, w = b ? En(b.text) : void 0;
     if (w) {
       r.push({
         ...c,
@@ -1449,13 +1449,13 @@ function Mn(t) {
 function _t(t, e) {
   const n = /* @__PURE__ */ new Set(), i = t.entities ?? {}, s = t.devices ?? {}, o = t.areas ?? {}, r = new Set(P(e.area_id));
   for (const l of P(e.floor_id))
-    for (const h of Object.values(o))
-      h.floor_id === l && r.add(h.area_id);
+    for (const u of Object.values(o))
+      u.floor_id === l && r.add(u.area_id);
   const a = new Set(P(e.device_id)), c = new Set(P(e.label_id));
   for (const l of P(e.entity_id)) n.add(l);
   for (const l of Object.values(i)) {
-    const h = l.device_id ? s[l.device_id] : void 0, p = l.area_id ?? h?.area_id ?? void 0;
-    p && r.has(p) && n.add(l.entity_id), l.device_id && a.has(l.device_id) && n.add(l.entity_id), l.labels?.some((g) => c.has(g)) && n.add(l.entity_id), h?.labels?.some((g) => c.has(g)) && n.add(l.entity_id);
+    const u = l.device_id ? s[l.device_id] : void 0, p = l.area_id ?? u?.area_id ?? void 0;
+    p && r.has(p) && n.add(l.entity_id), l.device_id && a.has(l.device_id) && n.add(l.entity_id), l.labels?.some((g) => c.has(g)) && n.add(l.entity_id), u?.labels?.some((g) => c.has(g)) && n.add(l.entity_id);
   }
   return n;
 }
@@ -1567,7 +1567,7 @@ function Bn(t, e, n, i, s, o = /* @__PURE__ */ new Set()) {
   const r = /* @__PURE__ */ new Set(), a = [];
   for (const c of e) {
     if (!c.isRun || c.rich || (n !== "all" && !(c.entityId && o.has(c.entityId)) && r.add(c), n === "none" || !s)) continue;
-    const l = s(c) ?? [], h = c.domain === "script" ? "script" : "automation", p = { kind: h, name: c.name, entityId: c.entityId, icon: ye[h] }, g = c.cause?.actor ?? p, d = /* @__PURE__ */ new Set([c.entityId, g.entityId]);
+    const l = s(c) ?? [], u = c.domain === "script" ? "script" : "automation", p = { kind: u, name: c.name, entityId: c.entityId, icon: ye[u] }, g = c.cause?.actor ?? p, d = /* @__PURE__ */ new Set([c.entityId, g.entityId]);
     l.forEach((f, b) => {
       a.push(Wn(t, c, g, f, b, i));
       for (const w of e)
@@ -1742,53 +1742,53 @@ function ii(t) {
     triggerEntityId: e.cause.triggerEntityId
   } : void 0;
 }
-function si(t) {
+function si(t, e) {
+  const n = t.cause, i = n?.triggerEntityId ?? n?.source?.entityId;
+  return i ? `entity|${i}` : e && n?.trigger ? `text|${n.trigger}` : void 0;
+}
+function oi(t) {
   return t.flatMap((e) => {
-    const n = /* @__PURE__ */ new Map();
-    for (const s of e) {
-      const o = s.cause?.source;
-      o && n.set(o.key, o);
-    }
-    if (n.size <= 1) return [e];
-    const i = new Map([...n.keys()].map((s) => [s, []]));
-    for (const s of e) {
-      let o = s.cause?.source?.key;
-      if (!o) {
-        let r = 1 / 0;
-        for (const [a, c] of n) {
-          const l = Math.abs(c.when - s.when);
-          l < r && (r = l, o = a);
+    const n = e.some((a) => a.cause?.triggerEntityId ?? a.cause?.source?.entityId), i = (a) => si(a, !n), s = e.filter((a) => i(a)), o = new Set(s.map((a) => i(a)));
+    if (o.size <= 1) return [e];
+    const r = new Map([...o].map((a) => [a, []]));
+    for (const a of e) {
+      let c = i(a);
+      if (!c) {
+        let l = 1 / 0;
+        for (const u of s) {
+          const p = Math.abs(u.when - a.when);
+          p < l && (l = p, c = i(u));
         }
       }
-      i.get(o).push(s);
+      r.get(c).push(a);
     }
-    return [...i.values()];
+    return [...r.values()];
   });
 }
-function oi(t, e, n = /* @__PURE__ */ new Set()) {
+function ri(t, e, n = /* @__PURE__ */ new Set()) {
   const i = /* @__PURE__ */ new Map();
   for (const a of e) {
     const l = a.cause?.actor;
     if (!l?.entityId || l.kind !== "automation" && l.kind !== "script" || a.effects) continue;
-    const h = l.entityId, p = i.get(h);
-    p ? p.push(a) : i.set(h, [a]);
+    const u = l.entityId, p = i.get(u);
+    p ? p.push(a) : i.set(u, [a]);
   }
   const s = /* @__PURE__ */ new Set(), o = [], r = e.filter((a) => !a.rich && a.cause?.actor?.kind === "service");
   for (const [, a] of i) {
-    const c = [...a].sort((h, p) => h.when - p.when), l = [];
-    for (const h of c) {
+    const c = [...a].sort((u, p) => u.when - p.when), l = [];
+    for (const u of c) {
       const p = l[l.length - 1];
-      p && h.when - p[p.length - 1].when <= Xn ? p.push(h) : l.push([h]);
+      p && u.when - p[p.length - 1].when <= Xn ? p.push(u) : l.push([u]);
     }
-    for (const h of si(l)) {
-      h.sort((y, k) => y.when - k.when);
-      const p = h.find((y) => y.cause?.source)?.cause?.source, g = h.filter((y) => ni(y, n)), d = h.filter((y) => !g.includes(y));
-      if (d.length < 2 && p?.cause?.actor?.kind !== "user") continue;
-      h.splice(0, h.length, ...d);
+    for (const u of oi(l)) {
+      u.sort((y, k) => y.when - k.when);
+      const p = u.find((y) => y.cause?.source)?.cause?.source, g = u.filter((y) => ni(y, n)), d = u.filter((y) => !g.includes(y));
+      if (d.length < 2 && p?.cause?.actor?.kind !== "user" && !p?.soft) continue;
+      u.splice(0, u.length, ...d);
       for (const y of r)
-        !s.has(y) && !h.includes(y) && y.when >= h[0].when - Zn && y.when <= h[h.length - 1].when + Qn && h.push(y);
-      h.sort((y, k) => y.when - k.when);
-      const f = h[0], b = ti(h), w = h.map(ei);
+        !s.has(y) && !u.includes(y) && y.when >= u[0].when - Zn && y.when <= u[u.length - 1].when + Qn && u.push(y);
+      u.sort((y, k) => y.when - k.when);
+      const f = u[0], b = ti(u), w = u.map(ei);
       let x;
       if (p)
         x = {
@@ -1815,22 +1815,22 @@ function oi(t, e, n = /* @__PURE__ */ new Set()) {
           isRun: !1,
           count: 1,
           rich: !0,
-          cause: ii(h),
+          cause: ii(u),
           effects: w,
           accent: O(k, void 0, "on", "active", !0)
         };
       }
-      for (const y of [...h, ...g]) s.add(y);
+      for (const y of [...u, ...g]) s.add(y);
       o.push(x);
     }
   }
   return s.size ? [...e.filter((a) => !s.has(a)), ...o] : e;
 }
-const ri = 6e4;
+const ai = 6e4;
 function te(t) {
   return (t.activity ?? "meaningful") === "meaningful" && !t.include_domains?.length;
 }
-function ai(t, e, n) {
+function ci(t, e, n) {
   if (!te(n)) return e;
   const i = G(n, t);
   for (const s of e) {
@@ -1838,7 +1838,7 @@ function ai(t, e, n) {
     const o = t.states[s.entityId]?.attributes.device_trackers;
     if (!Array.isArray(o)) continue;
     const r = e.find(
-      (a) => a.domain === "device_tracker" && a.entityId && o.includes(a.entityId) && a.verb === s.verb && Math.abs(a.when - s.when) <= ri
+      (a) => a.domain === "device_tracker" && a.entityId && o.includes(a.entityId) && a.verb === s.verb && Math.abs(a.when - s.when) <= ai
     );
     !r || s.cause?.actor || (s.cause = { trigger: `device ${r.name}`, triggerEntityId: r.entityId });
   }
@@ -1876,7 +1876,7 @@ const Xe = {
   vibration: ["detected vibration", "vibration cleared"],
   running: ["started running", "stopped running"],
   update: ["has an update available", "is up to date"]
-}, ci = {
+}, li = {
   lock: {
     locked: ["was locked", "active"],
     unlocked: ["was unlocked", "inactive"],
@@ -1937,7 +1937,7 @@ const Xe = {
     above_horizon: ["rose", "active"],
     below_horizon: ["set", "inactive"]
   }
-}, li = /* @__PURE__ */ new Set([
+}, di = /* @__PURE__ */ new Set([
   "light",
   "switch",
   "fan",
@@ -1953,12 +1953,12 @@ const Xe = {
   "binary_sensor",
   "calendar",
   "update"
-]), di = /* @__PURE__ */ new Set(["person", "device_tracker"]), ui = /* @__PURE__ */ new Set(["button", "input_button", "event", "doorbell"]);
+]), ui = /* @__PURE__ */ new Set(["person", "device_tracker"]), hi = /* @__PURE__ */ new Set(["button", "input_button", "event", "doorbell"]);
 function $e(t) {
   const e = t.replace(/_/g, " ");
   return e.charAt(0).toUpperCase() + e.slice(1);
 }
-function hi(t, e, n) {
+function pi(t, e, n) {
   const i = t.states[e];
   if (i && t.formatEntityState)
     try {
@@ -1969,32 +1969,32 @@ function hi(t, e, n) {
   const s = i?.attributes.unit_of_measurement;
   return n !== "" && !Number.isNaN(Number(n)) ? s ? `${n} ${s}` : n : $e(n);
 }
-function pi(t, e) {
+function fi(t, e) {
   return Object.values(t.states).find(
     (i) => i.entity_id.startsWith("zone.") && (i.attributes.friendly_name ?? "").toLowerCase() === e.toLowerCase()
   )?.attributes.friendly_name ?? $e(e);
 }
-function fi(t, e, n, i) {
+function mi(t, e, n, i) {
   if (i === "unavailable") return { verb: "became unavailable", tone: "unavailable" };
   if (i === "unknown") return { verb: "became unknown", tone: "neutral" };
   const o = (n ? t.states[n] : void 0)?.attributes.device_class;
-  if (di.has(e))
-    return i === "home" ? { verb: "arrived home", tone: "active" } : i === "not_home" ? { verb: "left home", tone: "inactive" } : { verb: `arrived at ${pi(t, i)}`, tone: "active" };
+  if (ui.has(e))
+    return i === "home" ? { verb: "arrived home", tone: "active" } : i === "not_home" ? { verb: "left home", tone: "inactive" } : { verb: `arrived at ${fi(t, i)}`, tone: "active" };
   if (e === "binary_sensor" && o && Xe[o]) {
-    const [c, l, h, p] = Xe[o];
-    if (i === "on") return { verb: c, tone: h ?? "active" };
+    const [c, l, u, p] = Xe[o];
+    if (i === "on") return { verb: c, tone: u ?? "active" };
     if (i === "off") return { verb: l, tone: p ?? "inactive" };
   }
-  const r = ci[e]?.[i];
+  const r = li[e]?.[i];
   if (r) return { verb: r[0], tone: r[1] };
-  if (ui.has(e)) return { verb: "was pressed", tone: "active" };
+  if (hi.has(e)) return { verb: "was pressed", tone: "active" };
   if (e === "scene") return { verb: "was activated", tone: "active" };
   if (e === "climate" && i === "off") return { verb: "was turned off", tone: "inactive" };
-  if (li.has(e) || i === "on" || i === "off") {
+  if (di.has(e) || i === "on" || i === "off") {
     if (i === "on") return { verb: "was turned on", tone: "active" };
     if (i === "off") return { verb: "was turned off", tone: "inactive" };
   }
-  const a = n ? hi(t, n, i) : $e(i);
+  const a = n ? pi(t, n, i) : $e(i);
   return { verb: `changed to ${ve(a, 80)}`, tone: "neutral" };
 }
 const $ = {
@@ -2016,7 +2016,7 @@ const $ = {
   chatty: "summarize",
   show_diagnostic: !1,
   collapse_repeats: !0
-}, N = { hours: [1, 720], entries: [1, 500] }, Ze = 60 * 1e3, mi = 10 * 60 * 1e3, Qe = 5 * 60 * 1e3;
+}, N = { hours: [1, 720], entries: [1, 500] }, Ze = 60 * 1e3, _i = 10 * 60 * 1e3, Qe = 5 * 60 * 1e3;
 function xe(t) {
   return [t.when, t.entity_id ?? t.name, t.state ?? t.message, t.context_id].map((e) => e ?? "").join("|");
 }
@@ -2027,7 +2027,7 @@ function bt(t, [e, n], i) {
 function le(t) {
   return bt(t.hours_to_show, N.hours, $.hours_to_show);
 }
-function _i(t) {
+function gi(t) {
   return bt(t.max_entries, N.entries, $.max_entries);
 }
 function wt(t) {
@@ -2041,11 +2041,11 @@ function de(t, e, n, i, s = !1) {
   }
   return !(n && (!t.entity_id || !n.has(t.entity_id)) || t.entity_id && e.exclude_entities?.includes(t.entity_id) || e.include_domains?.length && !e.include_domains.includes(o) || e.exclude_domains?.includes(o) || !s && (e.activity ?? $.activity) === "meaningful" && !qn(t, e, i) || (e.hide_unavailable ?? $.hide_unavailable) && (t.state === "unavailable" || t.state === "unknown"));
 }
-function gi(t, e, n) {
+function vi(t, e, n) {
   const i = wt(e), s = e.entity_id ? t.states[e.entity_id] : void 0, o = e.name ?? s?.attributes.friendly_name ?? e.entity_id ?? "Home Assistant";
   let r, a = "neutral", c = Hn(t, e);
   if (e.state !== void 0 && e.message === void 0)
-    ({ verb: r, tone: a } = fi(t, i, e.entity_id, e.state));
+    ({ verb: r, tone: a } = mi(t, i, e.entity_id, e.state));
   else {
     const d = e.message ?? "did something";
     if (d.match(/^triggered(?: by (.+))?$/)) {
@@ -2060,7 +2060,7 @@ function gi(t, e, n) {
   }
   const l = c?.actor;
   l && !l.icon && (l.icon = ye[l.kind]);
-  const h = i === "person", p = h ? s?.attributes.entity_picture : void 0, g = n.state_color ?? $.state_color;
+  const u = i === "person", p = u ? s?.attributes.entity_picture : void 0, g = n.state_color ?? $.state_color;
   return {
     key: xe(e),
     when: e.when * 1e3,
@@ -2072,7 +2072,7 @@ function gi(t, e, n) {
     icon: bn(i, e.icon),
     stateValue: e.state,
     picture: p,
-    isPerson: h,
+    isPerson: u,
     isRun: we(e),
     cause: c,
     count: 1,
@@ -2083,14 +2083,14 @@ function et(t) {
   const e = t.cause;
   return `${e?.actor?.kind ?? ""}:${e?.actor?.name ?? ""}:${e?.trigger ?? ""}`;
 }
-function vi(t, e) {
+function yi(t, e) {
   if (!e || !t.entity_id || !e.vacuums.has(t.entity_id)) return !1;
   const n = $n[t.state ?? ""];
   return n ? e.items.some(
     (i) => i.entityId === t.entity_id && i.phase === n && Math.abs(i.when - t.when * 1e3) <= xn
   ) : !1;
 }
-function yi(t, e = !0, n = /* @__PURE__ */ new Set()) {
+function bi(t, e = !0, n = /* @__PURE__ */ new Set()) {
   const i = /* @__PURE__ */ new Set();
   for (const s of t) {
     const o = s.cause?.actor;
@@ -2106,76 +2106,76 @@ function yi(t, e = !0, n = /* @__PURE__ */ new Set()) {
   }
   return t.filter((s) => !i.has(s));
 }
-function bi(t, e, n) {
+function wi(t, e, n) {
   return te(n) ? pn(t, e, G(n, t)) : e;
 }
-function wi(t, e, n, i, s, o, r) {
-  const a = i - le(n) * 36e5, c = _i(n), l = n.collapse_repeats ?? $.collapse_repeats, h = (o?.items ?? []).filter(
-    (u) => u.when >= a && u.when <= i + Qe
-  ), p = o ? { items: h, vacuums: o.vacuums } : void 0, g = [...e], d = g.filter((u) => u.domain === "homeassistant" && u.message === "started").map((u) => u.when), f = G(n, t), b = /* @__PURE__ */ new Map();
-  for (const u of g) {
-    const v = we(u) ? u.source ?? u.message?.replace(/^triggered by /, "") : u.context_event_type === "automation_triggered" || u.context_event_type === "script_started" ? u.context_source ?? u.context_message?.replace(/^triggered by /, "") : void 0, A = be(v);
-    A && b.set(A, [...b.get(A) ?? [], u.when]);
+function $i(t, e, n, i, s, o, r) {
+  const a = i - le(n) * 36e5, c = gi(n), l = n.collapse_repeats ?? $.collapse_repeats, u = (o?.items ?? []).filter(
+    (h) => h.when >= a && h.when <= i + Qe
+  ), p = o ? { items: u, vacuums: o.vacuums } : void 0, g = [...e], d = g.filter((h) => h.domain === "homeassistant" && h.message === "started").map((h) => h.when), f = G(n, t), b = /* @__PURE__ */ new Map();
+  for (const h of g) {
+    const v = we(h) ? h.source ?? h.message?.replace(/^triggered by /, "") : h.context_event_type === "automation_triggered" || h.context_event_type === "script_started" ? h.context_source ?? h.context_message?.replace(/^triggered by /, "") : void 0, A = be(v);
+    A && b.set(A, [...b.get(A) ?? [], h.when]);
   }
-  const w = (u) => !!u.entity_id && (b.get(u.entity_id) ?? []).some((v) => u.when <= v + 5 && v - u.when <= 60), x = /* @__PURE__ */ new Set(), y = (u) => (n.activity ?? $.activity) !== "meaningful" ? !1 : u.domain === "homeassistant" ? u.message === "stopped" && d.some((v) => v >= u.when && v - u.when <= 900) : yt(u) || w(u) || u.entity_id && f.has(u.entity_id) || Yn.has(u.domain ?? u.entity_id?.split(".")[0] ?? "") ? !1 : d.some((v) => u.when >= v - 30 && u.when <= v + 180), k = g.filter((u) => {
-    const v = u.when * 1e3;
+  const w = (h) => !!h.entity_id && (b.get(h.entity_id) ?? []).some((v) => h.when <= v + 5 && v - h.when <= 60), x = /* @__PURE__ */ new Set(), y = (h) => (n.activity ?? $.activity) !== "meaningful" ? !1 : h.domain === "homeassistant" ? h.message === "stopped" && d.some((v) => v >= h.when && v - h.when <= 900) : yt(h) || w(h) || h.entity_id && f.has(h.entity_id) || Yn.has(h.domain ?? h.entity_id?.split(".")[0] ?? "") ? !1 : d.some((v) => h.when >= v - 30 && h.when <= v + 180), k = g.filter((h) => {
+    const v = h.when * 1e3;
     return v >= a && v <= i + Qe;
-  }).filter((u) => de(u, n, s, t) ? !0 : te(n) && w(u) && de(u, n, s, t, !0) ? (x.add(xe(u)), !0) : !1).filter((u) => !y(u)).filter((u) => !vi(u, p)).sort((u, v) => v.when - u.when), Ae = n.automation_runs ?? $.automation_runs, $t = Bn(
+  }).filter((h) => de(h, n, s, t) ? !0 : te(n) && w(h) && de(h, n, s, t, !0) ? (x.add(xe(h)), !0) : !1).filter((h) => !y(h)).filter((h) => !yi(h, p)).sort((h, v) => v.when - h.when), Ae = n.automation_runs ?? $.automation_runs, $t = Bn(
     t,
     [
-      ...k.map((u) => {
-        const v = gi(t, u, n);
+      ...k.map((h) => {
+        const v = vi(t, h, n);
         return x.has(v.key) && (v.soft = !0), v;
       }),
-      ...h
+      ...u
     ],
     Ae,
     n.state_color ?? $.state_color,
     n.show_actions === !1 ? void 0 : r,
     f
-  ).sort((u, v) => v.when - u.when), xt = yi($t, Ae !== "all", f).filter((u) => !u.soft), Se = un(
+  ).sort((h, v) => v.when - h.when), xt = bi($t, Ae !== "all", f).filter((h) => !h.soft), Se = un(
     rn(
-      bi(t, ai(t, xt, n), n),
+      wi(t, ci(t, xt, n), n),
       n.chatty ?? $.chatty,
       f
     )
   ), kt = Jn(
-    (te(n) ? oi(t, Se, f) : Se).sort(
-      (u, v) => v.when - u.when
+    (te(n) ? ri(t, Se, f) : Se).sort(
+      (h, v) => v.when - h.when
     ),
     n
   ), L = [];
   let se = 0;
-  for (const u of kt) {
+  for (const h of kt) {
     const v = L[L.length - 1];
-    if (l && v && !u.rich && !v.rich && u.entityId && v.entityId === u.entityId && v.verb === u.verb && et(v) === et(u) && se - u.when <= mi) {
-      v.count += 1, se = u.when;
+    if (l && v && !h.rich && !v.rich && h.entityId && v.entityId === h.entityId && v.verb === h.verb && et(v) === et(h) && se - h.when <= _i) {
+      v.count += 1, se = h.when;
       continue;
     }
-    if (L.push(u), se = u.when, L.length > c) break;
+    if (L.push(h), se = h.when, L.length > c) break;
   }
   const Ee = L.slice(0, c);
   (n.order ?? $.order) === "oldest_first" && Ee.reverse();
   const J = [];
-  for (const u of Ee) {
-    const v = Jt(u.when);
+  for (const h of Ee) {
+    const v = Jt(h.when);
     let A = J[J.length - 1];
-    (!A || A.key !== v) && (A = { key: v, label: en(u.when, i), items: [] }, J.push(A)), A.items.push(u);
+    (!A || A.key !== v) && (A = { key: v, label: en(h.when, i), items: [] }, J.push(A)), A.items.push(h);
   }
   return J;
 }
-function $i(t) {
+function xi(t) {
   let e = t.text ?? `${t.name} ${t.verb}`;
   t.count > 1 && (e += ` ${t.count} times`);
   const n = t.cause;
   return n?.actor && (e += ` by ${n.actor.name}`), n?.trigger && (e += `, triggered by ${n.trigger}`), t.details?.length && (e += ` (${t.details.join(", ")})`), t.effects?.length && (e += `. ${t.effects.map((i) => `${i.name} ${i.verb}`).join(". ")}`), e;
 }
-var xi = Object.defineProperty, ki = Object.getOwnPropertyDescriptor, j = (t, e, n, i) => {
-  for (var s = i > 1 ? void 0 : i ? ki(e, n) : e, o = t.length - 1, r; o >= 0; o--)
+var ki = Object.defineProperty, Ai = Object.getOwnPropertyDescriptor, j = (t, e, n, i) => {
+  for (var s = i > 1 ? void 0 : i ? Ai(e, n) : e, o = t.length - 1, r; o >= 0; o--)
     (r = t[o]) && (s = (i ? r(e, n, s) : r(s)) || s);
-  return i && s && xi(e, n, s), s;
+  return i && s && ki(e, n, s), s;
 };
-const tt = 3e3, Ai = 6e4;
+const tt = 3e3, Si = 6e4;
 let I = class extends D {
   constructor() {
     super(...arguments), this._groups = [], this._loading = !0, this._now = Date.now(), this._entries = /* @__PURE__ */ new Map(), this._subToken = 0, this._vacuums = /* @__PURE__ */ new Map(), this._vacUnsubs = [], this._vacToken = 0, this._traceBudget = 0, this._registryRefs = [], this._resolveRun = (t) => {
@@ -2187,7 +2187,7 @@ let I = class extends D {
     };
   }
   static async getConfigElement() {
-    return await Promise.resolve().then(() => Ni), document.createElement("what-happened-card-editor");
+    return await Promise.resolve().then(() => Di), document.createElement("what-happened-card-editor");
   }
   static getStubConfig() {
     return { title: "What happened", hours_to_show: 24, max_entries: 50 };
@@ -2220,7 +2220,7 @@ let I = class extends D {
   connectedCallback() {
     super.connectedCallback(), this._tick = window.setInterval(() => {
       this._now = Date.now(), this._refreshHistories(), this._recompute();
-    }, Ai), this._hass && this._config && (this._subKey = void 0, this._vacKey = void 0, this._ensureSubscription(), this._scheduleRecompute());
+    }, Si), this._hass && this._config && (this._subKey = void 0, this._vacKey = void 0, this._ensureSubscription(), this._scheduleRecompute());
   }
   disconnectedCallback() {
     super.disconnectedCallback(), window.clearInterval(this._tick), window.clearTimeout(this._recomputeTimer), this._unsubscribe(), this._unsubscribeVacuums(), this._subKey = void 0, this._vacKey = void 0;
@@ -2316,7 +2316,7 @@ let I = class extends D {
   _recompute() {
     if (!this._hass || !this._config) return;
     this._now = Date.now(), this._traceBudget = 40;
-    const t = wi(
+    const t = $i(
       this._hass,
       this._entries.values(),
       this._config,
@@ -2409,7 +2409,7 @@ let I = class extends D {
           style=${X({ "--accent": t.accent })}
           role=${o ? "button" : "text"}
           tabindex=${o ? "0" : "-1"}
-          aria-label=${$i(t)}
+          aria-label=${xi(t)}
           @click=${() => this._onRowClick(t)}
           @keydown=${(a) => this._onRowKey(a, t)}
         >
@@ -2543,10 +2543,10 @@ console.info(
   "color:#fff;background:#03a9f4;font-weight:600;border-radius:3px 0 0 3px;padding:2px 4px",
   "color:#03a9f4;background:#fff;border:1px solid #03a9f4;border-radius:0 3px 3px 0;padding:1px 4px"
 );
-var Si = Object.defineProperty, Ei = Object.getOwnPropertyDescriptor, ke = (t, e, n, i) => {
-  for (var s = i > 1 ? void 0 : i ? Ei(e, n) : e, o = t.length - 1, r; o >= 0; o--)
+var Ei = Object.defineProperty, Ii = Object.getOwnPropertyDescriptor, ke = (t, e, n, i) => {
+  for (var s = i > 1 ? void 0 : i ? Ii(e, n) : e, o = t.length - 1, r; o >= 0; o--)
     (r = t[o]) && (s = (i ? r(e, n, s) : r(s)) || s);
-  return i && s && Si(e, n, s), s;
+  return i && s && Ei(e, n, s), s;
 };
 const ce = [
   "alarm_control_panel",
@@ -2570,7 +2570,7 @@ const ce = [
   "switch",
   "update",
   "vacuum"
-].map((t) => ({ value: t, label: t })), Ii = {
+].map((t) => ({ value: t, label: t })), Ci = {
   title: "Title",
   show_day_headers: "Show day headings (Today, Yesterday)",
   hours_to_show: "Time window",
@@ -2599,7 +2599,7 @@ const ce = [
   show_diagnostic: "Include diagnostic, configuration and hidden entities",
   hide_unavailable: "Hide unavailable / unknown states",
   collapse_repeats: "Merge rapid repeats of the same event"
-}, Ci = {
+}, Ti = {
   colors: "Pick a domain (light, input_boolean, …) or a single entity and the color of its icons. An entity beats its domain.",
   title: "Leave empty to show no title.",
   also_show_entities: "Shown even when the default view would hide them (helpers, buttons, diagnostic entities, restart noise, very frequent entities). Pick an automation or script to always list its runs.",
@@ -2613,7 +2613,7 @@ const ce = [
   automation_runs: "Most runs are plumbing. By default only what a run said on a speaker or sent as a notification is shown, as its own entry.",
   chatty: "Entities with at least 10 entries at a pace of one per hour or faster, such as a clock sensor or an automation that runs every 15 minutes.",
   max_height: "Pixels. Only needed in Masonry and Panel views. In Sections views, resize the card with its handles."
-}, Ti = [
+}, Oi = [
   { name: "title", selector: { text: {} } },
   { name: "show_day_headers", selector: { boolean: {} } },
   {
@@ -2652,7 +2652,7 @@ const ce = [
       }
     }
   }
-], Oi = [
+], Mi = [
   { name: "target", selector: { target: {} } },
   { name: "exclude_entities", selector: { entity: { multiple: !0 } } },
   { name: "also_show_entities", selector: { entity: { multiple: !0 } } },
@@ -2675,7 +2675,7 @@ const ce = [
       select: { multiple: !0, custom_value: !0, mode: "dropdown", options: ce }
     }
   }
-], Mi = [
+], Ri = [
   {
     name: "colors",
     selector: {
@@ -2722,7 +2722,7 @@ const ce = [
     name: "max_height",
     selector: { number: { min: 100, max: 2e3, step: 10, mode: "box", unit_of_measurement: "px" } }
   }
-], Ri = [
+], Pi = [
   {
     name: "activity",
     selector: {
@@ -2766,14 +2766,14 @@ const ce = [
   { name: "vacuum_details", selector: { boolean: {} } },
   { name: "hide_unavailable", selector: { boolean: {} } },
   { name: "collapse_repeats", selector: { boolean: {} } }
-], Pi = [
-  { id: "source", header: "What to include", icon: "mdi:filter-variant", schema: Oi },
-  { id: "display", header: "Appearance", icon: "mdi:palette-outline", schema: Mi },
-  { id: "rules", header: "Rules", icon: "mdi:tune-variant", schema: Ri }
+], Ni = [
+  { id: "source", header: "What to include", icon: "mdi:filter-variant", schema: Mi },
+  { id: "display", header: "Appearance", icon: "mdi:palette-outline", schema: Ri },
+  { id: "rules", header: "Rules", icon: "mdi:tune-variant", schema: Pi }
 ];
 let H = class extends D {
   constructor() {
-    super(...arguments), this._computeLabel = (t) => Ii[t.name] ?? t.name, this._computeHelper = (t) => Ci[t.name];
+    super(...arguments), this._computeLabel = (t) => Ci[t.name] ?? t.name, this._computeHelper = (t) => Ti[t.name];
   }
   setConfig(t) {
     this._config = t;
@@ -2806,8 +2806,8 @@ let H = class extends D {
   }
   render() {
     return !this.hass || !this._config ? m : _`
-      ${this._form(Ti)}
-      ${Pi.map(
+      ${this._form(Oi)}
+      ${Ni.map(
       (t) => _`
           <ha-expansion-panel outlined .header=${t.header} .expanded=${t.id === "source"}>
             <ha-icon slot="leading-icon" .icon=${t.icon}></ha-icon>
@@ -2845,7 +2845,7 @@ ke([
 H = ke([
   ct("what-happened-card-editor")
 ], H);
-const Ni = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const Di = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   get WhatHappenedCardEditor() {
     return H;

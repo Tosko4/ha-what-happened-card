@@ -154,7 +154,7 @@ describe("a real house, default view", () => {
   it("shows only what happened, not the plumbing", () => {
     expect(items.map((i) => `${i.name} ${i.verb}`)).toEqual([
       "Atom Echo 01 said “Anjel pana”",
-      "Atom Echo 01 said “Onedlho sa bude vysávať”",
+      "44 – Onedlho sa bude vysávať (2–15 min) was pressed",
       "Pavel Dubovský arrived home",
       "Home Assistant started",
     ]);
@@ -164,8 +164,11 @@ describe("a real house, default view", () => {
     const [angel, code] = items;
     expect(angel.cause?.actor?.name).toBe("Anjel pana");
     expect(angel.cause?.trigger).toBe("time");
-    expect(code.cause?.actor?.name).toBe("DevControl – Hlásenie kódu (spracovanie)");
-    expect(code.cause?.trigger).toBe("44 – Onedlho sa bude vysávať (2–15 min) was pressed");
+    // the press heads the entry; what the automation did is listed under it
+    expect(code.via?.map((v) => v.name)).toEqual(["DevControl – Hlásenie kódu (spracovanie)"]);
+    expect(code.effects?.map((e) => `${e.name} ${e.verb}`)).toEqual([
+      "Atom Echo 01 said “Onedlho sa bude vysávať”",
+    ]);
   });
 
   it("shows the person arriving, based on their phone, and not the phone itself", () => {
