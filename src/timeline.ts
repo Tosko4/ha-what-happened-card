@@ -11,6 +11,8 @@ import {
   pickedEntities,
 } from "./relevance";
 import { groupBursts, hideGroupMembers, summarizeChatty } from "./noise";
+import { applyColors } from "./colors";
+import { groupEffects } from "./effects";
 import { foldTrackers, smartFilteringOn } from "./people";
 import { dayKey, formatDayLabel } from "./format";
 import { describeState } from "./state-message";
@@ -220,7 +222,7 @@ function mergeChains(
     );
     if (source) {
       hidden.add(source);
-      effect.cause = { ...effect.cause, trigger: `${source.name} ${source.verb}` };
+      effect.cause = { ...effect.cause, trigger: `${source.name} ${source.verb}`, source };
     }
   }
   return items.filter((i) => !hidden.has(i));
@@ -304,12 +306,20 @@ export function buildTimeline(
   ).sort((a, b) => b.when - a.when);
   // With automation_runs: all, runs stay visible next to what they did.
   const chained = mergeChains(converted, runs !== "all", picked);
-  const merged = groupBursts(
+  const bursts = groupBursts(
     summarizeChatty(
       dedupe(hass, foldTrackers(hass, chained, config), config),
       config.chatty ?? DEFAULTS.chatty,
       picked,
     ),
+    picked,
+  );
+  // One action, one entry: what an automation caused moves under the entry that started it.
+  const merged = applyColors(
+    (smartFilteringOn(config) ? groupEffects(hass, bursts, picked) : bursts).sort(
+      (a, b) => b.when - a.when,
+    ),
+    config,
   );
 
   const items: TimelineItem[] = [];
@@ -359,5 +369,7 @@ export function plainSentence(item: TimelineItem): string {
   if (cause?.actor) text += ` by ${cause.actor.name}`;
   if (cause?.trigger) text += `, triggered by ${cause.trigger}`;
   if (item.details?.length) text += ` (${item.details.join(", ")})`;
+  if (item.effects?.length)
+    text += `. ${item.effects.map((e) => `${e.name} ${e.verb}`).join(". ")}`;
   return text;
 }

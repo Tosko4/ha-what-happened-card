@@ -40,6 +40,7 @@ const LABELS: Record<string, string> = {
   also_show_entities: "Also show these entities",
   also_show_domains: "Also show these domains",
   also_show_labels: "Also show these labels",
+  colors: "Icon colors",
   include_domains: "Only these domains",
   exclude_domains: "Hide these domains",
   show_cause: "Show why it happened (who / what / trigger)",
@@ -60,6 +61,8 @@ const LABELS: Record<string, string> = {
 };
 
 const HELPERS: Record<string, string> = {
+  colors:
+    "Pick a domain (light, input_boolean, …) or a single entity and the color of its icons. An entity beats its domain.",
   title: "Leave empty to show no title.",
   also_show_entities:
     "Shown even when the default view would hide them (helpers, buttons, diagnostic entities, restart noise, very frequent entities). Pick an automation or script to always list its runs.",
@@ -147,6 +150,19 @@ const SOURCE_SCHEMA: Schema = [
 ];
 
 const DISPLAY_SCHEMA: Schema = [
+  {
+    name: "colors",
+    selector: {
+      object: {
+        multiple: true,
+        label_field: "match",
+        fields: {
+          match: { label: "Domain or entity id", required: true, selector: { text: {} } },
+          color: { label: "Color", required: true, selector: { ui_color: {} } },
+        },
+      },
+    },
+  },
   { name: "show_cause", selector: { boolean: {} } },
   { name: "show_avatars", selector: { boolean: {} } },
 

@@ -473,6 +473,7 @@ export class WhatHappenedCard extends LitElement {
                 : nothing
             }
             ${showCause ? this._renderCause(item, avatars) : nothing}
+            ${showCause ? this._renderVia(item) : nothing} ${this._renderEffects(item)}
           </div>
           ${this._renderTime(item, config)}
         </div>
@@ -499,18 +500,7 @@ export class WhatHappenedCard extends LitElement {
             ? html`by${avatars && actor.kind === "user" ? this._renderAvatar(actor) : nothing}
               ${
                 interactive
-                  ? html`<button
-                      class="link"
-                      type="button"
-                      title=${actor.detail ? `${actor.name} – ${actor.detail}` : actor.name}
-                      @click=${(ev: Event) => {
-                        ev.stopPropagation();
-                        this._moreInfo(actor.entityId);
-                      }}
-                      @keydown=${(ev: KeyboardEvent) => ev.stopPropagation()}
-                    >
-                      ${actor.name}
-                    </button>`
+                  ? this._actorLink(actor)
                   : html`<span title=${actor.detail ?? actor.name}>${actor.name}</span>`
               }`
             : nothing
@@ -519,6 +509,93 @@ export class WhatHappenedCard extends LitElement {
         }
       </div>
     `;
+  }
+
+  /** A name that opens its entity. A span, not a button, so long names wrap like text. */
+  private _actorLink(actor: Actor): TemplateResult {
+    const open = (ev: Event) => {
+      ev.stopPropagation();
+      this._moreInfo(actor.entityId);
+    };
+    return html`<span
+      class="link"
+      role="button"
+      tabindex="0"
+      title=${actor.detail ? `${actor.name} – ${actor.detail}` : actor.name}
+      @click=${open}
+      @keydown=${(ev: KeyboardEvent) => {
+        ev.stopPropagation();
+        if (ev.key === "Enter" || ev.key === " ") {
+          ev.preventDefault();
+          this._moreInfo(actor.entityId);
+        }
+      }}
+      >${actor.name}</span
+    >`;
+  }
+
+  private _renderVia(item: TimelineItem): TemplateResult | typeof nothing {
+    if (!item.via?.length) return nothing;
+    const interactive = (this._config?.tap_action ?? DEFAULTS.tap_action) !== "none";
+    return html`<div class="secondary">
+      via
+      ${item.via.map(
+        (actor, i) =>
+          html`${i ? ", " : nothing}${
+            actor.entityId && interactive ? this._actorLink(actor) : actor.name
+          }`,
+      )}
+    </div>`;
+  }
+
+  /** What one action caused: a line per thing, under the entry that started it. */
+  private _renderEffects(item: TimelineItem): TemplateResult | typeof nothing {
+    if (!item.effects?.length) return nothing;
+    const interactive = (this._config?.tap_action ?? DEFAULTS.tap_action) !== "none";
+    return html`<ul class="effects">
+      ${item.effects.map((effect) => {
+        const stateObj =
+          effect.entityId && !effect.fixedIcon ? this._hass?.states[effect.entityId] : undefined;
+        const clickable = interactive && !!effect.entityId;
+        return html`<li
+          class=${classMap({ effect: true, clickable })}
+          style=${styleMap({ "--accent": effect.accent })}
+          role=${clickable ? "button" : "text"}
+          tabindex=${clickable ? "0" : "-1"}
+          @click=${(ev: Event) => {
+            if (!clickable) return;
+            ev.stopPropagation();
+            this._moreInfo(effect.entityId);
+          }}
+          @keydown=${(ev: KeyboardEvent) => {
+            if (ev.key === "Enter" || ev.key === " ") {
+              ev.stopPropagation();
+              ev.preventDefault();
+              if (clickable) this._moreInfo(effect.entityId);
+            }
+          }}
+        >
+          <span class="e-icon"
+            >${
+              stateObj
+                ? html`<ha-state-icon
+                    .hass=${this._hass}
+                    .stateObj=${stateObj}
+                    .stateValue=${effect.stateValue}
+                  ></ha-state-icon>`
+                : html`<ha-icon .icon=${effect.icon}></ha-icon>`
+            }</span
+          >
+          <span class="e-text"
+            ><span class="e-name">${effect.name}</span> ${effect.verb}${
+              effect.details?.length
+                ? html`<span class="e-details"> · ${effect.details.join(" · ")}</span>`
+                : nothing
+            }</span
+          >
+        </li>`;
+      })}
+    </ul>`;
   }
 
   private _renderTime(item: TimelineItem, config: WhatHappenedConfig): TemplateResult {

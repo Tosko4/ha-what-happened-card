@@ -58,6 +58,7 @@ exclude_domains:
 | `exclude_entities`   | –              | Entities to hide                                                                                               |
 | `also_show_entities` | –              | Always show these entities, even if the default view hides them; pick an automation or script to list its runs |
 | `also_show_labels`   | –              | Like `also_show_entities`, for everything carrying one of these labels (entities and devices)                  |
+| `colors`             | –              | List of `match` (domain or entity id) and `color` (palette name or CSS color) for icons                        |
 | `also_show_domains`  | –              | Add domains to the default view, e.g. `sensor`                                                                 |
 | `include_domains`    | –              | Only show these domains                                                                                        |
 | `exclude_domains`    | –              | Hide these domains                                                                                             |
@@ -97,6 +98,17 @@ The card works out what is worth showing, so you do not have to pick entities by
 - the same action split over many entities: a script, the speaker, a status LED and a text sensor that all changed because of one automation become a single entry.
 
 - **Show more:** `also_show_entities` adds entities the default view would hide (a helper, a button, a diagnostic entity, an automation whose runs you want to follow); `also_show_labels` does the same for everything carrying a Home Assistant label (entities and devices), so one "watch this" label is enough; `also_show_domains` adds whole domains such as `sensor`. Both are additive: everything else keeps following the default view, and an entity you list is never summarized or folded away.
+- **One action, one entry:** pressing a button that runs an automation which speaks, changes three displays and sets a helper is one entry: `"4 – Prídem onedlho" was pressed, by Ján, via DevControl – Hlásenie kódu`, with what it caused listed underneath (`Atom Echo 01 said “Kod 4”`, `3 text entities changed to Kod 4`, ...). When no visible entity started it (a timer), the automation heads the entry instead.
+- **Colors:** icons follow your theme's state colors. Anything that stays grey, such as a helper, can be given a color with `colors`, by domain or by entity (an entity beats its domain):
+
+  ```yaml
+  colors:
+    - match: input_select
+      color: purple
+    - match: light.kitchen
+      color: "#ff8800"
+  ```
+
 - `activity: everything` shows all of it again. Picking an entity by name in `target`, or domains in `include_domains`, always shows them, and also turns off the grouping of light-group members and of a person with their device.
 - **Automations and scripts:** most runs are plumbing ("AI summaries was triggered", a helper toggled), so they are not listed. When a run switched something, the change is shown with "by <automation>, triggered by …". When a run said something on a speaker or sent a notification, that becomes its own entry, in the same shape as everything else: `Kitchen speaker said “Someone is at the front door”`, `by Announce visitor, triggered by Front door was opened`. `automation_runs: all` lists every run, `none` hides runs and what they said.
 - **How it knows:** the spoken text and notifications are read from the run trace, which Home Assistant only gives to admin users. Without admin rights, or with `show_actions: false`, plain runs simply stay hidden.

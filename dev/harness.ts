@@ -104,6 +104,17 @@ const states = [
   ["media_player.tv", "playing", { friendly_name: "Living room TV" }],
   ["switch.pump", "on", { friendly_name: "Irrigation pump" }],
   ["vacuum.robot", "docked", { friendly_name: "Robot vacuum" }],
+  ["input_button.prid", "unknown", { friendly_name: "4 – Prídem onedlho" }],
+  [
+    "automation.code",
+    "on",
+    { friendly_name: "DevControl – Hlásenie kódu (spracovanie)", id: "42" },
+  ],
+  ["media_player.echo", "idle", { friendly_name: "Atom Echo 01" }],
+  ["text.b35", "Kod 4", { friendly_name: 'JadivClock 3.5" Broadcast' }],
+  ["text.b43", "Kod 4", { friendly_name: 'JadivClock4.3" Jedáleň Broadcast' }],
+  ["text.b24", "Kod 4", { friendly_name: 'JadivClock 2.4" Broadcast' }],
+  ["input_select.who", "Ján", { friendly_name: "Hlásenie – kto hlási" }],
   ["automation.tts", "on", { friendly_name: "Announce visitor", id: "1700000000" }],
   ["media_player.kitchen", "idle", { friendly_name: "Kitchen speaker" }],
   ["sensor.date_time", "2026-11-08, 15:19", { friendly_name: "Date & Time" }],
@@ -288,6 +299,63 @@ events.push(
   { when: m(53), entity_id: "vacuum.robot", name: "Robot vacuum", state: "docked" },
 );
 
+// "4 – Prídem onedlho" pressed by Ján: an automation speaks, sets three displays and a helper.
+const viaCode = {
+  context_event_type: "automation_triggered",
+  context_entity_id: "automation.code",
+  context_source: "input_button.prid was pressed",
+};
+events.push(
+  {
+    when: m(3),
+    entity_id: "input_button.prid",
+    name: "4 – Prídem onedlho",
+    state: "x",
+    context_user_id: "u1",
+    context_event_type: "call_service",
+    context_domain: "input_button",
+    context_service: "press",
+  },
+  {
+    when: m(3) + 1,
+    entity_id: "automation.code",
+    domain: "automation",
+    name: "DevControl – Hlásenie kódu (spracovanie)",
+    message: "triggered by input_button.prid was pressed",
+    source: "input_button.prid was pressed",
+  },
+  {
+    when: m(3) + 2,
+    entity_id: "text.b35",
+    name: 'JadivClock 3.5" Broadcast',
+    state: "Kod 4",
+    ...viaCode,
+  },
+  {
+    when: m(3) + 2,
+    entity_id: "text.b43",
+    name: 'JadivClock4.3" Jedáleň Broadcast',
+    state: "Kod 4",
+    ...viaCode,
+  },
+  {
+    when: m(3) + 2,
+    entity_id: "text.b24",
+    name: 'JadivClock 2.4" Broadcast',
+    state: "Kod 4",
+    ...viaCode,
+  },
+  {
+    when: m(3) + 3,
+    entity_id: "input_select.who",
+    name: "Hlásenie – kto hlási",
+    state: "Ján",
+    context_event_type: "call_service",
+    context_domain: "input_select",
+    context_service: "select_option",
+  },
+);
+
 const hass: HomeAssistant = {
   states: Object.fromEntries(states.map((s: any) => [s.entity_id, s])),
   entities: {
@@ -300,7 +368,31 @@ const hass: HomeAssistant = {
   callWS: async (msg: any) => {
     if (msg.type === "tapo_rv30/history/list") return { runs: vacuumRuns };
     if (msg.type === "trace/list") {
-      return [{ run_id: "r1", timestamp: { start: new Date((m(5) - 1) * 1000).toISOString() } }];
+      return [
+        {
+          run_id: msg.item_id === "42" ? "c1" : "r1",
+          timestamp: {
+            start: new Date(((msg.item_id === "42" ? m(3) + 1 : m(5)) - 1) * 1000).toISOString(),
+          },
+        },
+      ];
+    }
+    if (msg.type === "trace/get" && msg.run_id === "c1") {
+      return {
+        trace: {
+          "action/0": [
+            {
+              result: {
+                params: {
+                  domain: "tts",
+                  service: "speak",
+                  service_data: { message: "Kod 4", media_player_entity_id: "media_player.echo" },
+                },
+              },
+            },
+          ],
+        },
+      };
     }
     if (msg.type === "trace/get") {
       const call = (domain: string, service: string, service_data: object) => [
@@ -342,7 +434,13 @@ function mount(id: string, config: Record<string, unknown>) {
   );
 }
 
-mount("a", { title: "What happened", hours_to_show: 48, max_entries: 50 });
+mount("a", {
+  title: "What happened",
+  hours_to_show: 48,
+  max_entries: 50,
+  also_show_domains: ["text", "input_select"],
+  colors: [{ match: "input_select", color: "purple" }],
+});
 mount("b", { title: "Activity", compact: true, time_display: "relative" });
 mount("c", { hours_to_show: 1, show_day_headers: false, state_color: false });
 if (location.hash.includes("dark")) document.body.classList.add("dark");
