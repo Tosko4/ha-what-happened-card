@@ -220,6 +220,13 @@ describe("event entities", () => {
     expect(items[0].count).toBe(1);
   });
 
+  it("keeps the earliest copy of a repeated event, whatever the buffer order", () => {
+    const copy = (ago: number) =>
+      entry({ ago, entity_id: "event.doorbell_ding", state: fired, context_id: `c${ago}` });
+    const items = flat(buildTimeline(h, [copy(3000), copy(3600), copy(3300)], cfg(), NOW));
+    expect(items.map((i) => i.when)).toEqual([NOW - 3_600_000]);
+  });
+
   it("keeps separate events apart", () => {
     const entries = [
       entry({ ago: 3600, entity_id: "event.doorbell_ding", state: fired }),
