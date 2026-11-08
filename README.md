@@ -89,6 +89,7 @@ The card works out what is worth showing, so you do not have to pick entities by
 - helpers (`input_boolean`, `input_select`, …) and buttons, unless a person used them. An automation flipping a helper is plumbing;
 - the `device_tracker` next to every person, and a binary sensor with no device class and no known cause;
 - the **restart echo**: dozens of entities restoring their state with no cause right after Home Assistant starts, and the "stopped" half of a restart;
+- the members of a light group (or any group entity) that switched together with it: only the group is shown. A member that changes on its own, while the group stays as it is, is still shown;
 - the same action split over many entities: a script, the speaker, a status LED and a text sensor that all changed because of one automation become a single entry.
 
 - `activity: everything` shows all of it again. Picking an entity by name in `target`, or domains in `include_domains`, always shows them.

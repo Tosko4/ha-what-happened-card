@@ -319,3 +319,54 @@ describe("meaningful activity (default)", () => {
     expect(run("binary_sensor.wifi")).toHaveLength(0);
   });
 });
+
+describe("light groups", () => {
+  const groupHass = makeHass([
+    state("light.dining", "off", {
+      friendly_name: "Svetlá jedáleň",
+      entity_id: ["light.dining_1", "light.dining_2", "light.dining_3"],
+    }),
+    state("light.dining_1", "off", { friendly_name: "Jedáleň svetlo 01" }),
+    state("light.dining_2", "off", { friendly_name: "Jedáleň svetlo 02" }),
+    state("light.dining_3", "off", { friendly_name: "Jedáleň svetlo 03" }),
+  ]);
+  const shown = (e: LogbookEntry[]) =>
+    buildTimeline(groupHass, e, cfg(), NOW).flatMap((g) => g.items);
+  const off = (ago: number, id: string, name: string, c: Partial<LogbookEntry> = {}) =>
+    entry({ ago, entity_id: id, name, state: "off", ...c });
+
+  it("shows the group and not its members", () => {
+    const result = shown([
+      off(100, "light.dining", "Svetlá jedáleň", {
+        context_entity_id: "light.dining_2",
+        context_entity_id_name: "Jedáleň svetlo 02",
+      }),
+      off(100, "light.dining_2", "Jedáleň svetlo 02"),
+      off(100, "light.dining_1", "Jedáleň svetlo 01"),
+      off(99, "light.dining_3", "Jedáleň svetlo 03"),
+    ]);
+    expect(result.map((i) => i.name)).toEqual(["Svetlá jedáleň"]);
+    expect(result[0].cause?.actor?.name).toBe("Jedáleň svetlo 02");
+  });
+
+  it("keeps a member that changed alone, while the group stayed on", () => {
+    const result = shown([off(100, "light.dining_1", "Jedáleň svetlo 01")]);
+    expect(result.map((i) => i.name)).toEqual(["Jedáleň svetlo 01"]);
+  });
+
+  it("keeps a member that did something different from the group", () => {
+    const result = shown([
+      entry({ ago: 100, entity_id: "light.dining", name: "Svetlá jedáleň", state: "on" }),
+      off(98, "light.dining_1", "Jedáleň svetlo 01"),
+    ]);
+    expect(result).toHaveLength(2);
+  });
+
+  it("keeps a member that changed long before or after the group", () => {
+    const result = shown([
+      off(100, "light.dining", "Svetlá jedáleň"),
+      off(400, "light.dining_1", "Jedáleň svetlo 01"),
+    ]);
+    expect(result).toHaveLength(2);
+  });
+});

@@ -4,7 +4,7 @@ import { convertRuns } from "./runs";
 import type { ActionEvent } from "./trace";
 import { REPLACED_STATES, REPLACE_WINDOW_MS } from "./vacuum";
 import { RESTART_EXEMPT_DOMAINS, hasKnownCause, isMeaningful, isRunEntry } from "./relevance";
-import { groupBursts, summarizeChatty } from "./noise";
+import { groupBursts, hideGroupMembers, summarizeChatty } from "./noise";
 import { dayKey, formatDayLabel } from "./format";
 import { describeState } from "./state-message";
 import type {
@@ -280,7 +280,9 @@ export function buildTimeline(
   ).sort((a, b) => b.when - a.when);
   // With automation_runs: all, runs stay visible next to what they did.
   const chained = mergeChains(converted, runs !== "all");
-  const merged = groupBursts(summarizeChatty(chained, config.chatty ?? DEFAULTS.chatty));
+  const merged = groupBursts(
+    summarizeChatty(hideGroupMembers(hass, chained), config.chatty ?? DEFAULTS.chatty),
+  );
 
   const items: TimelineItem[] = [];
   let oldestOfLast = 0;
