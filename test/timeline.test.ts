@@ -232,4 +232,31 @@ describe("event entities", () => {
     const items = flat(buildTimeline(h, entries, cfg({ collapse_repeats: false }), NOW));
     expect(items.map((i) => i.verb)).toEqual(["rang", "rang"]);
   });
+
+  it("summarizes a busy event entity by what it reported", () => {
+    const motion = makeHass([
+      state("event.cam", "2026-11-08T11:00:00.000+00:00", {
+        friendly_name: "Garden camera",
+        device_class: "motion",
+      }),
+    ]);
+    const fire = (i: number, type: string) =>
+      entry({
+        ago: 600 * (i + 1),
+        entity_id: "event.cam",
+        state: `2026-11-08T10:${String(i).padStart(2, "0")}:00.000+00:00`,
+        attributes: { event_type: type },
+      });
+    const same = Array.from({ length: 12 }, (_, i) => fire(i, "camera_motion"));
+    const one = flat(buildTimeline(motion, same, cfg(), NOW));
+    expect(one.map((i) => i.verb)).toEqual(["detected motion 12 times"]);
+    expect(one[0].details).toBeUndefined();
+
+    const mixed = same.map((e, i) =>
+      i === 0 ? { ...e, attributes: { event_type: "camera_person" } } : e,
+    );
+    const two = flat(buildTimeline(motion, mixed, cfg(), NOW));
+    expect(two.map((i) => i.verb)).toEqual(["fired 12 times"]);
+    expect(two[0].details).toEqual(["latest: detected a person"]);
+  });
 });
