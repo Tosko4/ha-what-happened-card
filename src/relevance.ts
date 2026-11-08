@@ -1,3 +1,4 @@
+import { resolveTargetEntities } from "./targets";
 import type { HomeAssistant, LogbookEntry, WhatHappenedConfig } from "./types";
 
 /**
@@ -81,9 +82,27 @@ const MEANINGFUL_BINARY_CLASSES = new Set([
 /** Domains that keep their meaning right after a restart (a tracker is folded into its person). */
 export const RESTART_EXEMPT_DOMAINS = new Set(["person", "device_tracker", "homeassistant"]);
 
-/** Entities the user asked for by name: they bypass every smart filter. */
-export function pickedEntities(config: WhatHappenedConfig): Set<string> {
-  return new Set([config.target?.entity_id ?? [], config.also_show_entities ?? []].flat());
+const pickedCache = new WeakMap<
+  WhatHappenedConfig,
+  { entities: unknown; devices: unknown; ids: Set<string> }
+>();
+
+/**
+ * Entities the user asked for: by name (`target`, `also_show_entities`) or through a label
+ * (`also_show_labels`, which covers entities and devices carrying it). They bypass every smart
+ * filter. Cached per config because it is asked for once per log entry.
+ */
+export function pickedEntities(config: WhatHappenedConfig, hass?: HomeAssistant): Set<string> {
+  const hit = pickedCache.get(config);
+  if (hit && hit.entities === hass?.entities && hit.devices === hass?.devices) return hit.ids;
+
+  const ids = new Set([config.target?.entity_id ?? [], config.also_show_entities ?? []].flat());
+  if (hass && config.also_show_labels?.length) {
+    for (const id of resolveTargetEntities(hass, { label_id: config.also_show_labels }))
+      ids.add(id);
+  }
+  pickedCache.set(config, { entities: hass?.entities, devices: hass?.devices, ids });
+  return ids;
 }
 
 export function isRunEntry(entry: LogbookEntry): boolean {
@@ -112,7 +131,7 @@ export function isMeaningful(
   hass: HomeAssistant | undefined,
 ): boolean {
   const domain = entry.domain ?? entry.entity_id?.split(".")[0] ?? "homeassistant";
-  if (entry.entity_id && pickedEntities(config).has(entry.entity_id)) return true;
+  if (entry.entity_id && pickedEntities(config, hass).has(entry.entity_id)) return true;
   if (config.also_show_domains?.includes(domain)) return true;
   if (config.include_domains?.length) return true; // the user chose domains explicitly
 

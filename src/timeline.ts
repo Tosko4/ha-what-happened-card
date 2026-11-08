@@ -83,7 +83,7 @@ export function passesFilters(
   const domain = domainOf(entry);
   if (hass && entry.entity_id && !(config.show_diagnostic ?? DEFAULTS.show_diagnostic)) {
     const reg = hass.entities?.[entry.entity_id];
-    const picked = pickedEntities(config).has(entry.entity_id);
+    const picked = pickedEntities(config, hass).has(entry.entity_id);
     // Diagnostic, config and hidden entities are noise unless the user asked for them by name.
     if (reg && (reg.entity_category || reg.hidden) && !picked) return false;
   }
@@ -232,7 +232,7 @@ function dedupe(
   config: WhatHappenedConfig,
 ): TimelineItem[] {
   if (!smartFilteringOn(config)) return items;
-  return hideGroupMembers(hass, items, pickedEntities(config));
+  return hideGroupMembers(hass, items, pickedEntities(config, hass));
 }
 
 /**
@@ -265,7 +265,7 @@ export function buildTimeline(
   const restarts = list
     .filter((e) => e.domain === "homeassistant" && e.message === "started")
     .map((e) => e.when);
-  const picked = pickedEntities(config);
+  const picked = pickedEntities(config, hass);
   const restartNoise = (e: LogbookEntry): boolean => {
     if ((config.activity ?? DEFAULTS.activity) !== "meaningful") return false;
     if (e.domain === "homeassistant") {

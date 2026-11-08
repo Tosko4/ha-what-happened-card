@@ -103,6 +103,8 @@ export interface WhatHappenedConfig {
   also_show_entities?: string[];
   /** Show these domains on top of the smart default view (e.g. "sensor"). */
   also_show_domains?: string[];
+  /** Labels: everything carrying one of them is shown like an entity in also_show_entities. */
+  also_show_labels?: string[];
   hours_to_show?: number;
   max_entries?: number;
   order?: Order;

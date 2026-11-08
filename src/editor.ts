@@ -39,6 +39,7 @@ const LABELS: Record<string, string> = {
   exclude_entities: "Hide these entities",
   also_show_entities: "Also show these entities",
   also_show_domains: "Also show these domains",
+  also_show_labels: "Also show these labels",
   include_domains: "Only these domains",
   exclude_domains: "Hide these domains",
   show_cause: "Show why it happened (who / what / trigger)",
@@ -62,6 +63,8 @@ const HELPERS: Record<string, string> = {
   title: "Leave empty to show no title.",
   also_show_entities:
     "Shown even when the default view would hide them (helpers, buttons, diagnostic entities, restart noise, very frequent entities). Pick an automation or script to always list its runs.",
+  also_show_labels:
+    'Everything carrying one of these labels (entities and devices) is shown like an entity in the list above. Handy for a "watch this" label.',
   also_show_domains:
     "Added to the default view, e.g. sensor or update. Pick from the list or type your own.",
   hours_to_show: "How far back the timeline reaches, in hours (1 – 720).",
@@ -122,6 +125,7 @@ const SOURCE_SCHEMA: Schema = [
   { name: "target", selector: { target: {} } },
   { name: "exclude_entities", selector: { entity: { multiple: true } } },
   { name: "also_show_entities", selector: { entity: { multiple: true } } },
+  { name: "also_show_labels", selector: { label: { multiple: true } } },
   {
     name: "also_show_domains",
     selector: {
