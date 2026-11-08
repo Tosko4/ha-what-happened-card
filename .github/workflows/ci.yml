@@ -24,7 +24,7 @@ jobs:
       - run: npm run build
       - name: Check that dist/ is up to date
         run: git diff --exit-code -- dist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: what-happened-card
           path: dist/what-happened-card.js
