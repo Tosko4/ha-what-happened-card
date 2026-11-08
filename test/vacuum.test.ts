@@ -224,3 +224,36 @@ describe("timeline with vacuum data", () => {
     expect(result.filter((v) => v === "started cleaning")).toHaveLength(1);
   });
 });
+
+describe("vacuum color", () => {
+  it("is teal when cleaning and when docked, red on an error", () => {
+    const items = vacuumItems(
+      hass,
+      {
+        entityId: "vacuum.robot",
+        log: [],
+        runs: [
+          { started: s - 400, minutes: 3 },
+          { started: s - 4000, minutes: 3, error: 5 },
+        ],
+      },
+      cfg,
+    );
+    const start = items.find((i) => i.phase === "start" && i.when === (s - 400) * 1000)!;
+    const finish = items.find((i) => i.phase === "finish" && i.when === (s - 400 + 180) * 1000)!;
+    const failed = items.find((i) => i.phase === "finish" && i.tone === "alert")!;
+    expect(start.accent).toContain("--teal-color");
+    expect(finish.accent).toContain("--teal-color");
+    expect(failed.accent).toBe("var(--error-color)");
+  });
+
+  it("can still be recolored", () => {
+    const result = buildTimeline(
+      hass,
+      [entry({ ago: 30, entity_id: "vacuum.robot", name: "Robot vacuum", state: "paused" })],
+      { ...cfg, colors: [{ match: "vacuum", color: "purple" }] },
+      NOW,
+    ).flatMap((g) => g.items);
+    expect(result[0].accent).toBe("var(--purple-color, #926bc7)");
+  });
+});

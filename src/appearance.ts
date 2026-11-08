@@ -34,6 +34,11 @@ export function stateColor(
   enabled: boolean,
 ): string {
   const neutral = "var(--state-icon-color, var(--primary-text-color))";
+  // A vacuum is teal whether it is cleaning, docked or paused, not grey when it is idle.
+  if (enabled && domain === "vacuum" && tone !== "alert" && tone !== "unavailable") {
+    const base = "var(--state-vacuum-active-color, var(--teal-color, #009688))";
+    return state ? `var(--state-vacuum-${state}-color, ${base})` : base;
+  }
   if (!enabled) return tone === "unavailable" ? "var(--state-unavailable-color)" : neutral;
   switch (tone) {
     case "unavailable":

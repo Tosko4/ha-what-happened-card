@@ -3,7 +3,7 @@
  * Copyright 2019 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const X = globalThis, le = X.ShadowRoot && (X.ShadyCSS === void 0 || X.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, ue = Symbol(), Ee = /* @__PURE__ */ new WeakMap();
+const X = globalThis, de = X.ShadowRoot && (X.ShadyCSS === void 0 || X.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, ue = Symbol(), Ee = /* @__PURE__ */ new WeakMap();
 let tt = class {
   constructor(e, n, i) {
     if (this._$cssResult$ = !0, i !== ue) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
@@ -12,7 +12,7 @@ let tt = class {
   get styleSheet() {
     let e = this.o;
     const n = this.t;
-    if (le && e === void 0) {
+    if (de && e === void 0) {
       const i = n !== void 0 && n.length === 1;
       i && (e = Ee.get(n)), e === void 0 && ((this.o = e = new CSSStyleSheet()).replaceSync(this.cssText), i && Ee.set(n, e));
     }
@@ -30,12 +30,12 @@ const At = (t) => new tt(typeof t == "string" ? t : t + "", void 0, ue), nt = (t
   })(s) + t[o + 1], t[0]);
   return new tt(n, t, ue);
 }, St = (t, e) => {
-  if (le) t.adoptedStyleSheets = e.map((n) => n instanceof CSSStyleSheet ? n : n.styleSheet);
+  if (de) t.adoptedStyleSheets = e.map((n) => n instanceof CSSStyleSheet ? n : n.styleSheet);
   else for (const n of e) {
     const i = document.createElement("style"), s = X.litNonce;
     s !== void 0 && i.setAttribute("nonce", s), i.textContent = n.cssText, t.appendChild(i);
   }
-}, Ie = le ? (t) => t : (t) => t instanceof CSSStyleSheet ? ((e) => {
+}, Ie = de ? (t) => t : (t) => t instanceof CSSStyleSheet ? ((e) => {
   let n = "";
   for (const i of e.cssRules) n += i.cssText;
   return At(n);
@@ -274,10 +274,10 @@ const Ht = (t, e) => {
   let s, o = e === 2 ? "<svg>" : e === 3 ? "<math>" : "", r = L;
   for (let a = 0; a < n; a++) {
     const c = t[a];
-    let d, l, p = -1, v = 0;
-    for (; v < c.length && (r.lastIndex = v, l = r.exec(c), l !== null); ) v = r.lastIndex, r === L ? l[1] === "!--" ? r = Re : l[1] !== void 0 ? r = Pe : l[2] !== void 0 ? (ot.test(l[2]) && (s = RegExp("</" + l[2], "g")), r = E) : l[3] !== void 0 && (r = E) : r === E ? l[0] === ">" ? (r = s ?? L, p = -1) : l[1] === void 0 ? p = -2 : (p = r.lastIndex - l[2].length, d = l[1], r = l[3] === void 0 ? E : l[3] === '"' ? De : Ne) : r === De || r === Ne ? r = E : r === Re || r === Pe ? r = L : (r = E, s = void 0);
+    let l, d, p = -1, v = 0;
+    for (; v < c.length && (r.lastIndex = v, d = r.exec(c), d !== null); ) v = r.lastIndex, r === L ? d[1] === "!--" ? r = Re : d[1] !== void 0 ? r = Pe : d[2] !== void 0 ? (ot.test(d[2]) && (s = RegExp("</" + d[2], "g")), r = E) : d[3] !== void 0 && (r = E) : r === E ? d[0] === ">" ? (r = s ?? L, p = -1) : d[1] === void 0 ? p = -2 : (p = r.lastIndex - d[2].length, l = d[1], r = d[3] === void 0 ? E : d[3] === '"' ? De : Ne) : r === De || r === Ne ? r = E : r === Re || r === Pe ? r = L : (r = E, s = void 0);
     const u = r === E && t[a + 1].startsWith("/>") ? " " : "";
-    o += r === L ? c + Nt : p >= 0 ? (i.push(d), c.slice(0, p) + it + c.slice(p) + k + u) : c + k + (p === -2 ? a : u);
+    o += r === L ? c + Nt : p >= 0 ? (i.push(l), c.slice(0, p) + it + c.slice(p) + k + u) : c + k + (p === -2 ? a : u);
   }
   return [rt(t, o + (t[n] || "<?>") + (e === 2 ? "</svg>" : e === 3 ? "</math>" : "")), i];
 };
@@ -286,15 +286,15 @@ class K {
     let s;
     this.parts = [];
     let o = 0, r = 0;
-    const a = e.length - 1, c = this.parts, [d, l] = Ht(e, n);
-    if (this.el = K.createElement(d, i), I.currentNode = this.el.content, n === 2 || n === 3) {
+    const a = e.length - 1, c = this.parts, [l, d] = Ht(e, n);
+    if (this.el = K.createElement(l, i), I.currentNode = this.el.content, n === 2 || n === 3) {
       const p = this.el.content.firstChild;
       p.replaceWith(...p.childNodes);
     }
     for (; (s = I.nextNode()) !== null && c.length < a; ) {
       if (s.nodeType === 1) {
         if (s.hasAttributes()) for (const p of s.getAttributeNames()) if (p.endsWith(it)) {
-          const v = l[r++], u = s.getAttribute(p).split(k), f = /([.?@])?(.*)/.exec(v);
+          const v = d[r++], u = s.getAttribute(p).split(k), f = /([.?@])?(.*)/.exec(v);
           c.push({ type: 1, index: o, name: f[2], strings: u, ctor: f[1] === "." ? jt : f[1] === "?" ? Lt : f[1] === "@" ? Wt : ne }), s.removeAttribute(p);
         } else p.startsWith(k) && (c.push({ type: 6, index: o }), s.removeAttribute(p));
         if (ot.test(s.tagName)) {
@@ -340,8 +340,8 @@ class zt {
     let o = I.nextNode(), r = 0, a = 0, c = i[0];
     for (; c !== void 0; ) {
       if (r === c.index) {
-        let d;
-        c.type === 2 ? d = new Y(o, o.nextSibling, this, e) : c.type === 1 ? d = new c.ctor(o, c.name, c.strings, this, e) : c.type === 6 && (d = new Bt(o, this, e)), this._$AV.push(d), c = i[++a];
+        let l;
+        c.type === 2 ? l = new Y(o, o.nextSibling, this, e) : c.type === 1 ? l = new c.ctor(o, c.name, c.strings, this, e) : c.type === 6 && (l = new Bt(o, this, e)), this._$AV.push(l), c = i[++a];
       }
       r !== c?.index && (o = I.nextNode(), r++);
     }
@@ -427,8 +427,8 @@ class ne {
     if (o === void 0) e = N(this, e, n, 0), r = !F(e) || e !== this._$AH && e !== A, r && (this._$AH = e);
     else {
       const a = e;
-      let c, d;
-      for (e = o[0], c = 0; c < o.length - 1; c++) d = N(this, a[i + c], n, c), d === A && (d = this._$AH[c]), r ||= !F(d) || d !== this._$AH[c], d === _ ? e = _ : e !== _ && (e += (d ?? "") + o[c + 1]), this._$AH[c] = d;
+      let c, l;
+      for (e = o[0], c = 0; c < o.length - 1; c++) l = N(this, a[i + c], n, c), l === A && (l = this._$AH[c]), r ||= !F(l) || l !== this._$AH[c], l === _ ? e = _ : e !== _ && (e += (l ?? "") + o[c + 1]), this._$AH[c] = l;
     }
     r && !s && this.j(e);
   }
@@ -574,7 +574,7 @@ function U(t) {
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const dt = { ATTRIBUTE: 1 }, lt = (t) => (...e) => ({ _$litDirective$: t, values: e });
+const lt = { ATTRIBUTE: 1 }, dt = (t) => (...e) => ({ _$litDirective$: t, values: e });
 let ut = class {
   constructor(e) {
   }
@@ -596,9 +596,9 @@ let ut = class {
  * Copyright 2018 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const W = lt(class extends ut {
+const W = dt(class extends ut {
   constructor(t) {
-    if (super(t), t.type !== dt.ATTRIBUTE || t.name !== "class" || t.strings?.length > 2) throw Error("`classMap()` can only be used in the `class` attribute and must be the only part in the attribute.");
+    if (super(t), t.type !== lt.ATTRIBUTE || t.name !== "class" || t.strings?.length > 2) throw Error("`classMap()` can only be used in the `class` attribute and must be the only part in the attribute.");
   }
   render(t) {
     return " " + Object.keys(t).filter((e) => t[e]).join(" ") + " ";
@@ -623,9 +623,9 @@ const W = lt(class extends ut {
  * Copyright 2018 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const ht = "important", Gt = " !" + ht, J = lt(class extends ut {
+const ht = "important", Gt = " !" + ht, J = dt(class extends ut {
   constructor(t) {
-    if (super(t), t.type !== dt.ATTRIBUTE || t.name !== "style" || t.strings?.length > 2) throw Error("The `styleMap` directive must be used in the `style` attribute and must be the only part in the attribute.");
+    if (super(t), t.type !== lt.ATTRIBUTE || t.name !== "style" || t.strings?.length > 2) throw Error("The `styleMap` directive must be used in the `style` attribute and must be the only part in the attribute.");
   }
   render(t) {
     return Object.keys(t).reduce((e, n) => {
@@ -719,8 +719,8 @@ function rn(t, e, n = /* @__PURE__ */ new Set()) {
   const i = /* @__PURE__ */ new Map();
   for (const a of t) {
     if (a.rich || a.entityId && n.has(a.entityId)) continue;
-    const c = ze(a), d = i.get(c);
-    d ? d.push(a) : i.set(c, [a]);
+    const c = ze(a), l = i.get(c);
+    l ? l.push(a) : i.set(c, [a]);
   }
   const s = /* @__PURE__ */ new Set();
   for (const [a, c] of i) {
@@ -737,11 +737,11 @@ function rn(t, e, n = /* @__PURE__ */ new Set()) {
     }
     if (r.has(c) || e === "hide") continue;
     r.add(c);
-    const d = i.get(c).length;
+    const l = i.get(c).length;
     o.push({
       ...a,
       key: `chatty|${c}`,
-      verb: a.isRun ? `was triggered ${d} times` : `changed ${d} times`,
+      verb: a.isRun ? `was triggered ${l} times` : `changed ${l} times`,
       details: a.isRun ? void 0 : [`latest: ${ge(a.verb, 70)}`],
       isRun: !1,
       count: 1,
@@ -771,10 +771,10 @@ const an = {
 function cn(t) {
   return an[t] ?? `${t.replace(/_/g, " ")} entities`;
 }
-function dn(t) {
+function ln(t) {
   return t.startsWith("was ") ? `were ${t.slice(4)}` : t.startsWith("is ") ? `are ${t.slice(3)}` : t;
 }
-function ln(t, e) {
+function dn(t, e) {
   return (t.cause?.actor?.name ?? "") === (e.cause?.actor?.name ?? "") && (t.cause?.trigger ?? "") === (e.cause?.trigger ?? "");
 }
 function un(t, e = /* @__PURE__ */ new Set()) {
@@ -791,22 +791,22 @@ function un(t, e = /* @__PURE__ */ new Set()) {
   }
   const s = /* @__PURE__ */ new Map();
   for (const { members: o } of i) {
-    const r = new Set(o.map((l) => l.entityId));
+    const r = new Set(o.map((d) => d.entityId));
     if (r.size < on) continue;
-    const a = o[0], c = [...new Set(o.map((l) => l.name))], d = c.slice(0, 6).join(", ");
+    const a = o[0], c = [...new Set(o.map((d) => d.name))], l = c.slice(0, 6).join(", ");
     s.set(a, {
       ...a,
       key: `burst|${a.key}`,
       entityId: void 0,
       name: `${r.size} ${cn(a.domain)}`,
-      verb: dn(a.verb),
-      details: [c.length > 6 ? `${d} and ${c.length - 6} more` : d],
-      cause: o.every((l) => ln(l, a)) ? a.cause : void 0,
+      verb: ln(a.verb),
+      details: [c.length > 6 ? `${l} and ${c.length - 6} more` : l],
+      cause: o.every((d) => dn(d, a)) ? a.cause : void 0,
       count: 1,
       stateValue: void 0,
       rich: !0
     });
-    for (const l of o.slice(1)) s.set(l, null);
+    for (const d of o.slice(1)) s.set(d, null);
   }
   return s.size === 0 ? t : t.flatMap((o) => {
     if (!s.has(o)) return [o];
@@ -845,12 +845,12 @@ function mn(t) {
         if (!a) continue;
         const c = `${o.domain}.${o.service}`;
         if (o.domain === "tts") {
-          const d = [
+          const l = [
             ...oe(r.media_player_entity_id),
             ...oe(r.entity_id),
             ...oe(o.target?.entity_id)
-          ].filter((l) => l.startsWith("media_player."));
-          e.push({ kind: "say", text: a, speakers: [...new Set(d)], service: c });
+          ].filter((d) => d.startsWith("media_player."));
+          e.push({ kind: "say", text: a, speakers: [...new Set(l)], service: c });
         } else (o.domain === "notify" || o.domain === "persistent_notification") && e.push({
           kind: "notify",
           text: a,
@@ -898,10 +898,10 @@ class vn {
     if (!s) return;
     const o = `${s.domain}|${s.itemId}`, r = this.lists.get(o), a = r && re(r.runs, n, i);
     if (a && this.details.has(`${o}|${a.run_id}`)) return;
-    const c = `${o}|${a?.run_id ?? Math.floor(n / 6e4)}`, d = this.tried.get(c);
-    if (d && Date.now() - d < gn) return;
-    const l = this.inflight.get(c);
-    if (l) return l;
+    const c = `${o}|${a?.run_id ?? Math.floor(n / 6e4)}`, l = this.tried.get(c);
+    if (l && Date.now() - l < gn) return;
+    const d = this.inflight.get(c);
+    if (d) return d;
     const p = (async () => {
       this.tried.set(c, Date.now());
       try {
@@ -946,6 +946,10 @@ function bn(t, e) {
 }
 function C(t, e, n, i, s) {
   const o = "var(--state-icon-color, var(--primary-text-color))";
+  if (s && t === "vacuum" && i !== "alert" && i !== "unavailable") {
+    const r = "var(--state-vacuum-active-color, var(--teal-color, #009688))";
+    return n ? `var(--state-vacuum-${n}-color, ${r})` : r;
+  }
   if (!s) return i === "unavailable" ? "var(--state-unavailable-color)" : o;
   switch (i) {
     case "unavailable":
@@ -1059,17 +1063,17 @@ function Tn(t, e, n) {
       accent: m ? Le : C("vacuum", void 0, "docked", "inactive", o)
     });
   }
-  const d = e.log.filter((u) => u.kind === "return"), l = /* @__PURE__ */ new Map(), p = /* @__PURE__ */ new Set();
+  const l = e.log.filter((u) => u.kind === "return"), d = /* @__PURE__ */ new Map(), p = /* @__PURE__ */ new Set();
   for (const u of e.log.filter((f) => f.kind === "docked")) {
-    const f = d.find(
+    const f = l.find(
       (b) => !p.has(b) && b.ts <= u.ts && u.ts - b.ts <= 1800
     );
-    f && (l.set(u, f), p.add(f));
+    f && (d.set(u, f), p.add(f));
   }
   const v = new Set(e.runs.map((u) => u.started));
   for (const u of e.log) {
     if (!kn.has(u.kind) || a.has(u) || u.kind === "done" && e.runs.length > 0 || u.kind === "start" && [...v].some((z) => Math.abs(z - u.ts) <= ft) || p.has(u)) continue;
-    const f = u.kind === "start" ? Be(u.text) : void 0, b = u.kind === "docked" ? l.get(u) : void 0, m = b ? En(b.text) : void 0;
+    const f = u.kind === "start" ? Be(u.text) : void 0, b = u.kind === "docked" ? d.get(u) : void 0, m = b ? En(b.text) : void 0;
     if (m) {
       r.push({
         ...c,
@@ -1444,14 +1448,14 @@ function Mn(t) {
 }
 function mt(t, e) {
   const n = /* @__PURE__ */ new Set(), i = t.entities ?? {}, s = t.devices ?? {}, o = t.areas ?? {}, r = new Set(M(e.area_id));
-  for (const d of M(e.floor_id))
-    for (const l of Object.values(o))
-      l.floor_id === d && r.add(l.area_id);
+  for (const l of M(e.floor_id))
+    for (const d of Object.values(o))
+      d.floor_id === l && r.add(d.area_id);
   const a = new Set(M(e.device_id)), c = new Set(M(e.label_id));
-  for (const d of M(e.entity_id)) n.add(d);
-  for (const d of Object.values(i)) {
-    const l = d.device_id ? s[d.device_id] : void 0, p = d.area_id ?? l?.area_id ?? void 0;
-    p && r.has(p) && n.add(d.entity_id), d.device_id && a.has(d.device_id) && n.add(d.entity_id), d.labels?.some((v) => c.has(v)) && n.add(d.entity_id), l?.labels?.some((v) => c.has(v)) && n.add(d.entity_id);
+  for (const l of M(e.entity_id)) n.add(l);
+  for (const l of Object.values(i)) {
+    const d = l.device_id ? s[l.device_id] : void 0, p = l.area_id ?? d?.area_id ?? void 0;
+    p && r.has(p) && n.add(l.entity_id), l.device_id && a.has(l.device_id) && n.add(l.entity_id), l.labels?.some((v) => c.has(v)) && n.add(l.entity_id), d?.labels?.some((v) => c.has(v)) && n.add(l.entity_id);
   }
   return n;
 }
@@ -1563,8 +1567,8 @@ function Bn(t, e, n, i, s, o = /* @__PURE__ */ new Set()) {
   const r = /* @__PURE__ */ new Set(), a = [];
   for (const c of e) {
     if (!c.isRun || c.rich || (n !== "all" && !(c.entityId && o.has(c.entityId)) && r.add(c), n === "none" || !s)) continue;
-    const d = s(c) ?? [], l = c.domain === "script" ? "script" : "automation", p = { kind: l, name: c.name, entityId: c.entityId, icon: ve[l] }, v = c.cause?.actor ?? p, u = /* @__PURE__ */ new Set([c.entityId, v.entityId]);
-    d.forEach((f, b) => {
+    const l = s(c) ?? [], d = c.domain === "script" ? "script" : "automation", p = { kind: d, name: c.name, entityId: c.entityId, icon: ve[d] }, v = c.cause?.actor ?? p, u = /* @__PURE__ */ new Set([c.entityId, v.entityId]);
+    l.forEach((f, b) => {
       a.push(Wn(t, c, v, f, b, i));
       for (const m of e)
         m !== c && m.entityId && f.speakers.includes(m.entityId) && u.has(m.cause?.actor?.entityId) && Math.abs(m.when - c.when) <= jn && r.add(m);
@@ -1749,8 +1753,8 @@ function ii(t) {
       if (!o) {
         let r = 1 / 0;
         for (const [a, c] of n) {
-          const d = Math.abs(c.when - s.when);
-          d < r && (r = d, o = a);
+          const l = Math.abs(c.when - s.when);
+          l < r && (r = l, o = a);
         }
       }
       i.get(o).push(s);
@@ -1761,28 +1765,28 @@ function ii(t) {
 function si(t, e, n = /* @__PURE__ */ new Set()) {
   const i = /* @__PURE__ */ new Map();
   for (const a of e) {
-    const d = a.cause?.actor;
-    if (!d?.entityId || d.kind !== "automation" && d.kind !== "script" || a.effects || a.entityId && n.has(a.entityId)) continue;
-    const l = d.entityId, p = i.get(l);
-    p ? p.push(a) : i.set(l, [a]);
+    const l = a.cause?.actor;
+    if (!l?.entityId || l.kind !== "automation" && l.kind !== "script" || a.effects || a.entityId && n.has(a.entityId)) continue;
+    const d = l.entityId, p = i.get(d);
+    p ? p.push(a) : i.set(d, [a]);
   }
   const s = /* @__PURE__ */ new Set(), o = [], r = e.filter(
     (a) => !a.rich && a.cause?.actor?.kind === "service" && !(a.entityId && n.has(a.entityId))
   );
   for (const [, a] of i) {
-    const c = [...a].sort((l, p) => l.when - p.when), d = [];
-    for (const l of c) {
-      const p = d[d.length - 1];
-      p && l.when - p[p.length - 1].when <= Xn ? p.push(l) : d.push([l]);
+    const c = [...a].sort((d, p) => d.when - p.when), l = [];
+    for (const d of c) {
+      const p = l[l.length - 1];
+      p && d.when - p[p.length - 1].when <= Xn ? p.push(d) : l.push([d]);
     }
-    for (const l of ii(d)) {
-      l.sort((m, $) => m.when - $.when);
-      const p = l.find((m) => m.cause?.source)?.cause?.source;
-      if (l.length < 2 && p?.cause?.actor?.kind !== "user") continue;
+    for (const d of ii(l)) {
+      d.sort((m, $) => m.when - $.when);
+      const p = d.find((m) => m.cause?.source)?.cause?.source;
+      if (d.length < 2 && p?.cause?.actor?.kind !== "user") continue;
       for (const m of r)
-        !s.has(m) && !l.includes(m) && m.when >= l[0].when - Zn && m.when <= l[l.length - 1].when + Qn && l.push(m);
-      l.sort((m, $) => m.when - $.when);
-      const v = l[0], u = ti(l), f = l.map(ei);
+        !s.has(m) && !d.includes(m) && m.when >= d[0].when - Zn && m.when <= d[d.length - 1].when + Qn && d.push(m);
+      d.sort((m, $) => m.when - $.when);
+      const v = d[0], u = ti(d), f = d.map(ei);
       let b;
       if (p)
         b = {
@@ -1809,12 +1813,12 @@ function si(t, e, n = /* @__PURE__ */ new Set()) {
           isRun: !1,
           count: 1,
           rich: !0,
-          cause: ni(l),
+          cause: ni(d),
           effects: f,
           accent: C($, void 0, "on", "active", !0)
         };
       }
-      for (const m of l) s.add(m);
+      for (const m of d) s.add(m);
       o.push(b);
     }
   }
@@ -1947,7 +1951,7 @@ const Je = {
   "binary_sensor",
   "calendar",
   "update"
-]), di = /* @__PURE__ */ new Set(["person", "device_tracker"]), li = /* @__PURE__ */ new Set(["button", "input_button", "event", "doorbell"]);
+]), li = /* @__PURE__ */ new Set(["person", "device_tracker"]), di = /* @__PURE__ */ new Set(["button", "input_button", "event", "doorbell"]);
 function we(t) {
   const e = t.replace(/_/g, " ");
   return e.charAt(0).toUpperCase() + e.slice(1);
@@ -1972,16 +1976,16 @@ function pi(t, e, n, i) {
   if (i === "unavailable") return { verb: "became unavailable", tone: "unavailable" };
   if (i === "unknown") return { verb: "became unknown", tone: "neutral" };
   const o = (n ? t.states[n] : void 0)?.attributes.device_class;
-  if (di.has(e))
+  if (li.has(e))
     return i === "home" ? { verb: "arrived home", tone: "active" } : i === "not_home" ? { verb: "left home", tone: "inactive" } : { verb: `arrived at ${hi(t, i)}`, tone: "active" };
   if (e === "binary_sensor" && o && Je[o]) {
-    const [c, d, l, p] = Je[o];
-    if (i === "on") return { verb: c, tone: l ?? "active" };
-    if (i === "off") return { verb: d, tone: p ?? "inactive" };
+    const [c, l, d, p] = Je[o];
+    if (i === "on") return { verb: c, tone: d ?? "active" };
+    if (i === "off") return { verb: l, tone: p ?? "inactive" };
   }
   const r = ai[e]?.[i];
   if (r) return { verb: r[0], tone: r[1] };
-  if (li.has(e)) return { verb: "was pressed", tone: "active" };
+  if (di.has(e)) return { verb: "was pressed", tone: "active" };
   if (e === "scene") return { verb: "was activated", tone: "active" };
   if (e === "climate" && i === "off") return { verb: "was turned off", tone: "inactive" };
   if (ci.has(e) || i === "on" || i === "off") {
@@ -2027,7 +2031,7 @@ function mi(t) {
 function bt(t) {
   return t.domain ?? t.entity_id?.split(".")[0] ?? "homeassistant";
 }
-function de(t, e, n, i, s = !1) {
+function le(t, e, n, i, s = !1) {
   const o = bt(t);
   if (!s && i && t.entity_id && !(e.show_diagnostic ?? w.show_diagnostic)) {
     const a = i.entities?.[t.entity_id], c = q(e, i).has(t.entity_id);
@@ -2052,9 +2056,9 @@ function _i(t, e, n) {
     } else
       r = u, a = /(error|fail)/i.test(u) ? "alert" : "neutral";
   }
-  const d = c?.actor;
-  d && !d.icon && (d.icon = ve[d.kind]);
-  const l = i === "person", p = l ? s?.attributes.entity_picture : void 0, v = n.state_color ?? w.state_color;
+  const l = c?.actor;
+  l && !l.icon && (l.icon = ve[l.kind]);
+  const d = i === "person", p = d ? s?.attributes.entity_picture : void 0, v = n.state_color ?? w.state_color;
   return {
     key: $e(e),
     when: e.when * 1e3,
@@ -2066,7 +2070,7 @@ function _i(t, e, n) {
     icon: bn(i, e.icon),
     stateValue: e.state,
     picture: p,
-    isPerson: l,
+    isPerson: d,
     isRun: be(e),
     cause: c,
     count: 1,
@@ -2104,9 +2108,9 @@ function yi(t, e, n) {
   return ee(n) ? pn(t, e, q(n, t)) : e;
 }
 function bi(t, e, n, i, s, o, r) {
-  const a = i - ce(n) * 36e5, c = mi(n), d = n.collapse_repeats ?? w.collapse_repeats, l = (o?.items ?? []).filter(
+  const a = i - ce(n) * 36e5, c = mi(n), l = n.collapse_repeats ?? w.collapse_repeats, d = (o?.items ?? []).filter(
     (h) => h.when >= a && h.when <= i + Ze
-  ), p = o ? { items: l, vacuums: o.vacuums } : void 0, v = [...e], u = v.filter((h) => h.domain === "homeassistant" && h.message === "started").map((h) => h.when), f = q(n, t), b = /* @__PURE__ */ new Map();
+  ), p = o ? { items: d, vacuums: o.vacuums } : void 0, v = [...e], u = v.filter((h) => h.domain === "homeassistant" && h.message === "started").map((h) => h.when), f = q(n, t), b = /* @__PURE__ */ new Map();
   for (const h of v) {
     const y = be(h) ? h.source ?? h.message?.replace(/^triggered by /, "") : h.context_event_type === "automation_triggered" || h.context_event_type === "script_started" ? h.context_source ?? h.context_message?.replace(/^triggered by /, "") : void 0, x = ye(y);
     x && b.set(x, [...b.get(x) ?? [], h.when]);
@@ -2114,14 +2118,14 @@ function bi(t, e, n, i, s, o, r) {
   const m = (h) => !!h.entity_id && (b.get(h.entity_id) ?? []).some((y) => h.when <= y + 5 && y - h.when <= 60), $ = /* @__PURE__ */ new Set(), z = (h) => (n.activity ?? w.activity) !== "meaningful" ? !1 : h.domain === "homeassistant" ? h.message === "stopped" && u.some((y) => y >= h.when && y - h.when <= 900) : vt(h) || m(h) || h.entity_id && f.has(h.entity_id) || Yn.has(h.domain ?? h.entity_id?.split(".")[0] ?? "") ? !1 : u.some((y) => h.when >= y - 30 && h.when <= y + 180), wt = v.filter((h) => {
     const y = h.when * 1e3;
     return y >= a && y <= i + Ze;
-  }).filter((h) => de(h, n, s, t) ? !0 : ee(n) && m(h) && de(h, n, s, t, !0) ? ($.add($e(h)), !0) : !1).filter((h) => !z(h)).filter((h) => !gi(h, p)).sort((h, y) => y.when - h.when), ke = n.automation_runs ?? w.automation_runs, $t = Bn(
+  }).filter((h) => le(h, n, s, t) ? !0 : ee(n) && m(h) && le(h, n, s, t, !0) ? ($.add($e(h)), !0) : !1).filter((h) => !z(h)).filter((h) => !gi(h, p)).sort((h, y) => y.when - h.when), ke = n.automation_runs ?? w.automation_runs, $t = Bn(
     t,
     [
       ...wt.map((h) => {
         const y = _i(t, h, n);
         return $.has(y.key) && (y.soft = !0), y;
       }),
-      ...l
+      ...d
     ],
     ke,
     n.state_color ?? w.state_color,
@@ -2143,7 +2147,7 @@ function bi(t, e, n, i, s, o, r) {
   let ie = 0;
   for (const h of kt) {
     const y = j[j.length - 1];
-    if (d && y && !h.rich && !y.rich && h.entityId && y.entityId === h.entityId && y.verb === h.verb && Qe(y) === Qe(h) && ie - h.when <= fi) {
+    if (l && y && !h.rich && !y.rich && h.entityId && y.entityId === h.entityId && y.verb === h.verb && Qe(y) === Qe(h) && ie - h.when <= fi) {
       y.count += 1, ie = h.when;
       continue;
     }
@@ -2289,8 +2293,8 @@ let S = class extends P {
       (a) => {
         if (o !== this._subToken) return;
         const c = this._config;
-        for (const d of a)
-          c && !de(d, c, this._allowed, this._hass) || this._entries.set($e(d), d);
+        for (const l of a)
+          c && !le(l, c, this._allowed, this._hass) || this._entries.set($e(l), l);
         this._entries.size > et && this._trimBuffer(), this._loading = !1, this._scheduleRecompute();
       },
       r,
