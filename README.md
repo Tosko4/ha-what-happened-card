@@ -74,15 +74,18 @@ The "why" comes from the Home Assistant logbook context. Changes made physically
 
 ## TapoVac-ADV vacuum support
 
-If you use [TapoVac-ADV](https://github.com/jan-tdy/TapoVac-ADV) (`tapo_rv30`), the card detects its vacuums automatically and replaces the plain "cleaning" / "docked" logbook lines with one entry per cleaning run:
+If you use [TapoVac-ADV](https://github.com/jan-tdy/TapoVac-ADV) (`tapo_rv30`), the card detects its vacuums automatically. Each cleaning run gets two entries, because they happen at two different times:
 
-> Robot vacuum cleaned Kitchen and Hallway
-> 42 min · 38 m² · bin emptied
+> **Robot vacuum started cleaning Kitchen and Hallway**
 > by Cleaning planner, triggered by Kitchen: 6 days since last clean; nobody home
+>
+> **Robot vacuum finished cleaning Kitchen and Hallway**
+> 42 min · 38 m² · bin emptied
 
-- **What and when:** rooms, start time, duration, cleaned area, emptied bin, errors (from the integration's clean history).
+- **What and when:** rooms, start and finish time, duration, cleaned area, emptied bin, errors (from the integration's clean history).
 - **Who and why:** the planner's own reason (which rooms were due, nobody home, …), a start you made yourself, or where the run came from (Tapo app, robot schedule, Alexa, automation, …).
 - **Planner events:** sent home because someone came home, "clean anyway" overrides, skipped days and start errors.
+- These replace the plain "cleaning" and "docked" logbook lines. Other states such as "returning" or "error" are still shown.
 - Updates live; set `vacuum_details: false` to turn it off. The usual `target`, `exclude_entities` and `exclude_domains` filters apply to the vacuum too.
 
 ## Development

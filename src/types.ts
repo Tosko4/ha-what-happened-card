@@ -157,6 +157,8 @@ export interface TimelineItem {
   text?: string;
   /** Built from an integration (not the logbook): never merged with neighbours. */
   rich?: boolean;
+  /** For integration entries: a run has a start entry and a finish entry. */
+  phase?: "start" | "finish";
   /** Draw `icon` as given instead of asking <ha-state-icon>. */
   fixedIcon?: boolean;
 }

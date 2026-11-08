@@ -1,6 +1,6 @@
 import { resolveCause, runTrigger } from "./context";
 import { ACTOR_ICONS, fallbackIcon, stateColor } from "./appearance";
-import { REPLACED_STATES } from "./vacuum";
+import { REPLACED_STATES, REPLACE_WINDOW_MS } from "./vacuum";
 import { dayKey, formatDayLabel } from "./format";
 import { describeState } from "./state-message";
 import type {
@@ -135,6 +135,22 @@ function causeSignature(item: TimelineItem): string {
   return `${c?.actor?.kind ?? ""}:${c?.actor?.name ?? ""}:${c?.trigger ?? ""}`;
 }
 
+/** A vacuum's plain "cleaning"/"docked" line is dropped when the integration has its own entry for it. */
+function isStandIn(
+  entry: LogbookEntry,
+  extra: { items: TimelineItem[]; vacuums: Set<string> } | undefined,
+): boolean {
+  if (!extra || !entry.entity_id || !extra.vacuums.has(entry.entity_id)) return false;
+  const phase = REPLACED_STATES[entry.state ?? ""];
+  if (!phase) return false;
+  return extra.items.some(
+    (i) =>
+      i.entityId === entry.entity_id &&
+      i.phase === phase &&
+      Math.abs(i.when - entry.when * 1000) <= REPLACE_WINDOW_MS,
+  );
+}
+
 /**
  * One thing that happened should be one entry: when a sensor triggered an
  * automation that switched a device, only the device entry is kept. It explains
@@ -196,15 +212,7 @@ export function buildTimeline(
       return ms >= since && ms <= now + FUTURE_TOLERANCE_MS;
     })
     .filter((e) => passesFilters(e, config, allowed))
-    .filter(
-      (e) =>
-        !(
-          extra &&
-          e.entity_id &&
-          extra.vacuums.has(e.entity_id) &&
-          REPLACED_STATES.has(e.state ?? "")
-        ),
-    )
+    .filter((e) => !isStandIn(e, extra))
     .sort((a, b) => b.when - a.when);
 
   const richItems = (extra?.items ?? []).filter(
