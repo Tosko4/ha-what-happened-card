@@ -75,6 +75,8 @@ function domainOf(entry: LogbookEntry): string {
   return entry.domain ?? entry.entity_id?.split(".")[0] ?? "homeassistant";
 }
 
+const GAP_STATES = new Set(["unavailable", "unknown"]);
+
 /** Config filters shared by the live buffer (ingest) and the timeline builder. */
 export function passesFilters(
   entry: LogbookEntry,
@@ -83,6 +85,11 @@ export function passesFilters(
   hass?: HomeAssistant,
   /** Skip the "is it worth showing" checks (an entry that started an automation). */
   forceMeaningful = false,
+  /**
+   * Let `unavailable` / `unknown` through even with `hide_unavailable`. The live buffer keeps
+   * them so `recoveryKeys` can tell a return to the previous state; the timeline still hides them.
+   */
+  keepGaps = false,
 ): boolean {
   const domain = domainOf(entry);
   if (
@@ -108,19 +115,23 @@ export function passesFilters(
     return false;
   }
   const hideUnavailable = config.hide_unavailable ?? DEFAULTS.hide_unavailable;
-  if (hideUnavailable && (entry.state === "unavailable" || entry.state === "unknown")) return false;
+  if (hideUnavailable && !keepGaps && GAP_STATES.has(entry.state ?? "")) return false;
   return true;
 }
-
-const GAP_STATES = new Set(["unavailable", "unknown"]);
 
 /**
  * Keys of entries that only report an entity coming back after `unavailable` or `unknown` in
  * the state it had before the gap (a cloud integration reconnecting, a device rebooting).
  * Nothing changed, so with `hide_unavailable` such a line would read as an event that never
- * happened, like "problem resolved" for a problem that was never there. An entry with a known
- * cause is kept, and so is the first return in the window when the state before it is unknown.
+ * happened, like "problem resolved" for a problem that was never there. A return that a person
+ * or an action caused is kept, and so is the first return in the window when the state before
+ * it is unknown. A return that only follows another entity (a template sensor coming back with
+ * its source) is still no change.
  */
+function causedByAction(e: LogbookEntry): boolean {
+  return Boolean(e.context_user_id || e.context_service || e.context_event_type);
+}
+
 export function recoveryKeys(entries: Iterable<LogbookEntry>): Set<string> {
   const byEntity = new Map<string, LogbookEntry[]>();
   for (const e of entries) {
@@ -139,7 +150,7 @@ export function recoveryKeys(entries: Iterable<LogbookEntry>): Set<string> {
         inGap = true;
         continue;
       }
-      if (inGap && before === e.state && !hasKnownCause(e)) keys.add(entryKey(e));
+      if (inGap && before === e.state && !causedByAction(e)) keys.add(entryKey(e));
       before = e.state;
       inGap = false;
     }

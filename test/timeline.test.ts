@@ -253,6 +253,34 @@ describe("returning from unavailable", () => {
     expect(flat(buildTimeline(h, caused, cfg({ collapse_repeats: false }), NOW))).toHaveLength(2);
   });
 
+  it("drops a return that only follows another entity coming back", () => {
+    const derived = [
+      entry({ ago: 600, entity_id: "binary_sensor.boiler_fault", state: "off" }),
+      entry({
+        ago: 300,
+        entity_id: "binary_sensor.boiler_fault",
+        state: "unavailable",
+        context_entity_id: "climate.thermostat",
+      }),
+      entry({
+        ago: 200,
+        entity_id: "binary_sensor.boiler_fault",
+        state: "off",
+        context_entity_id: "climate.thermostat",
+        context_state: "heat",
+      } as Parameters<typeof entry>[0]),
+    ];
+    expect(flat(buildTimeline(h, derived, cfg(), NOW)).map((i) => i.when)).toEqual([NOW - 600_000]);
+  });
+
+  it("works on the live buffer, which is filtered as entries arrive", () => {
+    // The card filters each entry before buffering it; gaps must survive that step.
+    const buffered = flapping.filter((e) => passesFilters(e, cfg(), undefined, h, false, true));
+    expect(buffered.filter((e) => e.state === "unavailable")).toHaveLength(3);
+    expect(flat(buildTimeline(h, buffered, cfg(), NOW))).toHaveLength(2);
+    expect(passesFilters(flapping[1], cfg(), undefined, h)).toBe(false);
+  });
+
   it("keeps the first return when the state before the gap is outside the window", () => {
     const edge = [
       entry({ ago: 300, entity_id: "light.kitchen", state: "unavailable" }),
