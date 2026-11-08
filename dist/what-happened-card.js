@@ -281,13 +281,13 @@ const tt = (t, e) => {
   }
   return [Oe(t, o + (t[i] || "<?>") + (e === 2 ? "</svg>" : e === 3 ? "</math>" : "")), r];
 };
-class j {
+class z {
   constructor({ strings: e, _$litType$: i }, r) {
     let n;
     this.parts = [];
     let o = 0, s = 0;
     const l = e.length - 1, a = this.parts, [c, u] = tt(e, i);
-    if (this.el = j.createElement(c, r), A.currentNode = this.el.content, i === 2 || i === 3) {
+    if (this.el = z.createElement(c, r), A.currentNode = this.el.content, i === 2 || i === 3) {
       const h = this.el.content.firstChild;
       h.replaceWith(...h.childNodes);
     }
@@ -341,7 +341,7 @@ class it {
     for (; a !== void 0; ) {
       if (s === a.index) {
         let c;
-        a.type === 2 ? c = new z(o, o.nextSibling, this, e) : a.type === 1 ? c = new a.ctor(o, a.name, a.strings, this, e) : a.type === 6 && (c = new st(o, this, e)), this._$AV.push(c), a = r[++l];
+        a.type === 2 ? c = new j(o, o.nextSibling, this, e) : a.type === 1 ? c = new a.ctor(o, a.name, a.strings, this, e) : a.type === 6 && (c = new st(o, this, e)), this._$AV.push(c), a = r[++l];
       }
       s !== a?.index && (o = A.nextNode(), s++);
     }
@@ -352,7 +352,7 @@ class it {
     for (const r of this._$AV) r !== void 0 && (r.strings !== void 0 ? (r._$AI(e, r, i), i += r.strings.length - 2) : r._$AI(e[i])), i++;
   }
 }
-class z {
+class j {
   get _$AU() {
     return this._$AM?._$AU ?? this._$Cv;
   }
@@ -383,7 +383,7 @@ class z {
     this._$AH !== p && H(this._$AH) ? this._$AA.nextSibling.data = e : this.T(k.createTextNode(e)), this._$AH = e;
   }
   $(e) {
-    const { values: i, _$litType$: r } = e, n = typeof r == "number" ? this._$AC(e) : (r.el === void 0 && (r.el = j.createElement(Oe(r.h, r.h[0]), this.options)), r);
+    const { values: i, _$litType$: r } = e, n = typeof r == "number" ? this._$AC(e) : (r.el === void 0 && (r.el = z.createElement(Oe(r.h, r.h[0]), this.options)), r);
     if (this._$AH?._$AD === n) this._$AH.p(i);
     else {
       const o = new it(n, this), s = o.u(this.options);
@@ -392,13 +392,13 @@ class z {
   }
   _$AC(e) {
     let i = fe.get(e.strings);
-    return i === void 0 && fe.set(e.strings, i = new j(e)), i;
+    return i === void 0 && fe.set(e.strings, i = new z(e)), i;
   }
   k(e) {
     ee(this._$AH) || (this._$AH = [], this._$AR());
     const i = this._$AH;
     let r, n = 0;
-    for (const o of e) n === i.length ? i.push(r = new z(this.O(D()), this.O(D()), this, this.options)) : r = i[n], r._$AI(o), n++;
+    for (const o of e) n === i.length ? i.push(r = new j(this.O(D()), this.O(D()), this, this.options)) : r = i[n], r._$AI(o), n++;
     n < i.length && (this._$AR(r && r._$AB.nextSibling, n), i.length = n);
   }
   _$AR(e = this._$AA.nextSibling, i) {
@@ -477,13 +477,13 @@ class st {
   }
 }
 const at = Q.litHtmlPolyfillSupport;
-at?.(j, z), (Q.litHtmlVersions ??= []).push("3.3.3");
+at?.(z, j), (Q.litHtmlVersions ??= []).push("3.3.3");
 const ct = (t, e, i) => {
   const r = i?.renderBefore ?? e;
   let n = r._$litPart$;
   if (n === void 0) {
     const o = i?.renderBefore ?? null;
-    r._$litPart$ = n = new z(e.insertBefore(D(), o), o, void 0, i ?? {});
+    r._$litPart$ = n = new j(e.insertBefore(D(), o), o, void 0, i ?? {});
   }
   return n._$AI(t), n;
 };
@@ -885,11 +885,13 @@ const kt = ke`
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    --wh-node: 40px;
+    --wh-node: 36px;
+    --wh-icon: 24px;
     --wh-surface: var(--ha-card-background, var(--card-background-color, #fff));
   }
   ha-card.compact {
     --wh-node: 28px;
+    --wh-icon: 18px;
   }
   .card-header {
     flex: none;
@@ -899,11 +901,11 @@ const kt = ke`
     min-height: 0;
     overflow-y: auto;
     max-height: var(--wh-max-height, none);
-    padding: 0 16px 8px;
+    padding: 0 var(--ha-space-4, 16px) var(--ha-space-2, 8px);
     overscroll-behavior: contain;
   }
   ha-card:not(.has-header) .scroll {
-    padding-top: 8px;
+    padding-top: var(--ha-space-2, 8px);
   }
   ol {
     list-style: none;
@@ -918,14 +920,13 @@ const kt = ke`
     z-index: 2;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 8px 0;
+    gap: var(--ha-space-3, 12px);
+    padding: var(--ha-space-2, 8px) 0;
     background: var(--wh-surface);
     color: var(--secondary-text-color);
-    font-size: 12px;
+    font-size: var(--ha-font-size-m, 14px);
     font-weight: 500;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    line-height: 20px;
   }
   .day::after {
     content: "";
@@ -938,19 +939,19 @@ const kt = ke`
   .item {
     display: grid;
     grid-template-columns: var(--wh-node) minmax(0, 1fr);
-    column-gap: 12px;
+    column-gap: var(--ha-space-3, 12px);
   }
   .rail {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-top: 4px;
+    padding-top: var(--ha-space-1, 4px);
   }
   .line {
     flex: 1;
     width: 2px;
     min-height: 8px;
-    margin-top: 4px;
+    margin-top: var(--ha-space-1, 4px);
     border-radius: 1px;
     background: var(--divider-color);
   }
@@ -965,13 +966,18 @@ const kt = ke`
     width: var(--wh-node);
     height: var(--wh-node);
     border-radius: 50%;
-    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    box-sizing: border-box;
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
     color: var(--accent);
-    --mdc-icon-size: calc(var(--wh-node) * 0.55);
+    --mdc-icon-size: var(--wh-icon);
+  }
+  .node ha-icon {
+    display: flex;
+    width: var(--wh-icon);
+    height: var(--wh-icon);
   }
   .node.photo {
     background: none;
-    box-shadow: 0 0 0 2px var(--accent);
   }
   .photo-img {
     width: 100%;
@@ -1007,9 +1013,9 @@ const kt = ke`
     display: flex;
     justify-content: space-between;
     gap: 12px;
-    margin: 0 -8px 12px;
-    padding: 4px 8px;
-    border-radius: 10px;
+    margin: 0 calc(-1 * var(--ha-space-2, 8px)) var(--ha-space-3, 12px);
+    padding: var(--ha-space-1, 4px) var(--ha-space-2, 8px);
+    border-radius: var(--ha-border-radius-lg, 12px);
     min-width: 0;
     outline: none;
     transition: background-color 120ms ease;
@@ -1041,9 +1047,9 @@ const kt = ke`
     margin-left: 6px;
     padding: 0 7px;
     border-radius: 9px;
-    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
     color: var(--primary-text-color);
-    font-size: 12px;
+    font-size: var(--ha-font-size-s, 12px);
     font-weight: 500;
     line-height: 18px;
     vertical-align: 1px;
@@ -1064,10 +1070,10 @@ const kt = ke`
     gap: 4px;
     max-width: 100%;
     box-sizing: border-box;
-    padding: 2px 8px 2px 4px;
-    border: 0;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--chip) 16%, transparent);
+    padding: 2px var(--ha-space-2, 8px) 2px var(--ha-space-1, 4px);
+    border: 1px solid var(--divider-color);
+    border-radius: var(--ha-border-radius-pill, 9999px);
+    background: transparent;
     color: var(--primary-text-color);
     font: inherit;
     font-size: 12px;
@@ -1106,7 +1112,7 @@ const kt = ke`
     cursor: pointer;
   }
   button.chip:hover {
-    background: color-mix(in srgb, var(--chip) 28%, transparent);
+    background: color-mix(in srgb, var(--primary-text-color) 6%, transparent);
   }
   button.chip:focus-visible {
     outline: 2px solid var(--primary-color);
@@ -1383,17 +1389,17 @@ function Ht(t, e, i) {
   const n = r?.attributes.unit_of_measurement;
   return i !== "" && !Number.isNaN(Number(i)) ? n ? `${i} ${n}` : i : re(i);
 }
-function jt(t, e) {
+function zt(t, e) {
   return Object.values(t.states).find(
     (r) => r.entity_id.startsWith("zone.") && (r.attributes.friendly_name ?? "").toLowerCase() === e.toLowerCase()
   )?.attributes.friendly_name ?? re(e);
 }
-function zt(t, e, i, r) {
+function jt(t, e, i, r) {
   if (r === "unavailable") return { verb: "became unavailable", tone: "alert" };
   if (r === "unknown") return { verb: "became unknown", tone: "neutral" };
   const o = (i ? t.states[i] : void 0)?.attributes.device_class;
   if (Nt.has(e))
-    return r === "home" ? { verb: "arrived home", tone: "active" } : r === "not_home" ? { verb: "left home", tone: "inactive" } : { verb: `arrived at ${jt(t, r)}`, tone: "active" };
+    return r === "home" ? { verb: "arrived home", tone: "active" } : r === "not_home" ? { verb: "left home", tone: "inactive" } : { verb: `arrived at ${zt(t, r)}`, tone: "active" };
   if (e === "binary_sensor" && o && we[o]) {
     const [a, c, u, h] = we[o];
     if (r === "on") return { verb: a, tone: u ?? "active" };
@@ -1427,28 +1433,28 @@ const v = {
 function He(t) {
   return [t.when, t.entity_id ?? t.name, t.state ?? t.message, t.context_id].map((e) => e ?? "").join("|");
 }
-function je(t, [e, i], r) {
+function ze(t, [e, i], r) {
   const n = typeof t == "number" ? t : Number(t);
   return Number.isFinite(n) ? Math.min(i, Math.max(e, Math.round(n))) : r;
 }
 function Y(t) {
-  return je(t.hours_to_show, O.hours, v.hours_to_show);
+  return ze(t.hours_to_show, O.hours, v.hours_to_show);
 }
 function Bt(t) {
-  return je(t.max_entries, O.entries, v.max_entries);
+  return ze(t.max_entries, O.entries, v.max_entries);
 }
-function ze(t) {
+function je(t) {
   return t.domain ?? t.entity_id?.split(".")[0] ?? "homeassistant";
 }
 function Le(t, e, i) {
-  const r = ze(t);
+  const r = je(t);
   return !(i && (!t.entity_id || !i.has(t.entity_id)) || t.entity_id && e.exclude_entities?.includes(t.entity_id) || e.include_domains?.length && !e.include_domains.includes(r) || e.exclude_domains?.includes(r) || (e.hide_unavailable ?? v.hide_unavailable) && (t.state === "unavailable" || t.state === "unknown"));
 }
 function Ft(t, e, i) {
-  const r = ze(e), n = e.entity_id ? t.states[e.entity_id] : void 0, o = e.name ?? n?.attributes.friendly_name ?? e.entity_id ?? "Home Assistant";
+  const r = je(e), n = e.entity_id ? t.states[e.entity_id] : void 0, o = e.name ?? n?.attributes.friendly_name ?? e.entity_id ?? "Home Assistant";
   let s, l = "neutral", a = Mt(t, e);
   if (e.state !== void 0 && e.message === void 0)
-    ({ verb: s, tone: l } = zt(t, r, e.entity_id, e.state));
+    ({ verb: s, tone: l } = jt(t, r, e.entity_id, e.state));
   else {
     const f = e.message ?? "did something";
     if (f.match(/^triggered(?: by (.+))?$/)) {

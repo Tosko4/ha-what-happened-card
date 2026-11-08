@@ -12,11 +12,13 @@ export const cardStyles = css`
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    --wh-node: 40px;
+    --wh-node: 36px;
+    --wh-icon: 24px;
     --wh-surface: var(--ha-card-background, var(--card-background-color, #fff));
   }
   ha-card.compact {
     --wh-node: 28px;
+    --wh-icon: 18px;
   }
   .card-header {
     flex: none;
@@ -26,11 +28,11 @@ export const cardStyles = css`
     min-height: 0;
     overflow-y: auto;
     max-height: var(--wh-max-height, none);
-    padding: 0 16px 8px;
+    padding: 0 var(--ha-space-4, 16px) var(--ha-space-2, 8px);
     overscroll-behavior: contain;
   }
   ha-card:not(.has-header) .scroll {
-    padding-top: 8px;
+    padding-top: var(--ha-space-2, 8px);
   }
   ol {
     list-style: none;
@@ -45,14 +47,13 @@ export const cardStyles = css`
     z-index: 2;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 8px 0;
+    gap: var(--ha-space-3, 12px);
+    padding: var(--ha-space-2, 8px) 0;
     background: var(--wh-surface);
     color: var(--secondary-text-color);
-    font-size: 12px;
+    font-size: var(--ha-font-size-m, 14px);
     font-weight: 500;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    line-height: 20px;
   }
   .day::after {
     content: "";
@@ -65,19 +66,19 @@ export const cardStyles = css`
   .item {
     display: grid;
     grid-template-columns: var(--wh-node) minmax(0, 1fr);
-    column-gap: 12px;
+    column-gap: var(--ha-space-3, 12px);
   }
   .rail {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-top: 4px;
+    padding-top: var(--ha-space-1, 4px);
   }
   .line {
     flex: 1;
     width: 2px;
     min-height: 8px;
-    margin-top: 4px;
+    margin-top: var(--ha-space-1, 4px);
     border-radius: 1px;
     background: var(--divider-color);
   }
@@ -92,13 +93,18 @@ export const cardStyles = css`
     width: var(--wh-node);
     height: var(--wh-node);
     border-radius: 50%;
-    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    box-sizing: border-box;
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
     color: var(--accent);
-    --mdc-icon-size: calc(var(--wh-node) * 0.55);
+    --mdc-icon-size: var(--wh-icon);
+  }
+  .node ha-icon {
+    display: flex;
+    width: var(--wh-icon);
+    height: var(--wh-icon);
   }
   .node.photo {
     background: none;
-    box-shadow: 0 0 0 2px var(--accent);
   }
   .photo-img {
     width: 100%;
@@ -134,9 +140,9 @@ export const cardStyles = css`
     display: flex;
     justify-content: space-between;
     gap: 12px;
-    margin: 0 -8px 12px;
-    padding: 4px 8px;
-    border-radius: 10px;
+    margin: 0 calc(-1 * var(--ha-space-2, 8px)) var(--ha-space-3, 12px);
+    padding: var(--ha-space-1, 4px) var(--ha-space-2, 8px);
+    border-radius: var(--ha-border-radius-lg, 12px);
     min-width: 0;
     outline: none;
     transition: background-color 120ms ease;
@@ -168,9 +174,9 @@ export const cardStyles = css`
     margin-left: 6px;
     padding: 0 7px;
     border-radius: 9px;
-    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
     color: var(--primary-text-color);
-    font-size: 12px;
+    font-size: var(--ha-font-size-s, 12px);
     font-weight: 500;
     line-height: 18px;
     vertical-align: 1px;
@@ -191,10 +197,10 @@ export const cardStyles = css`
     gap: 4px;
     max-width: 100%;
     box-sizing: border-box;
-    padding: 2px 8px 2px 4px;
-    border: 0;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--chip) 16%, transparent);
+    padding: 2px var(--ha-space-2, 8px) 2px var(--ha-space-1, 4px);
+    border: 1px solid var(--divider-color);
+    border-radius: var(--ha-border-radius-pill, 9999px);
+    background: transparent;
     color: var(--primary-text-color);
     font: inherit;
     font-size: 12px;
@@ -233,7 +239,7 @@ export const cardStyles = css`
     cursor: pointer;
   }
   button.chip:hover {
-    background: color-mix(in srgb, var(--chip) 28%, transparent);
+    background: color-mix(in srgb, var(--primary-text-color) 6%, transparent);
   }
   button.chip:focus-visible {
     outline: 2px solid var(--primary-color);
