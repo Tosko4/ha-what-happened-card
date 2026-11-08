@@ -7,7 +7,14 @@ import { formatDateTime, formatRelative, formatTime } from "./format";
 import { subscribeLogbook } from "./logbook";
 import { cardStyles } from "./styles";
 import { hasTarget, resolveTargetEntities } from "./targets";
-import { DEFAULTS, buildTimeline, effectiveHours, entryKey, plainSentence } from "./timeline";
+import {
+  DEFAULTS,
+  buildTimeline,
+  effectiveHours,
+  entryKey,
+  passesFilters,
+  plainSentence,
+} from "./timeline";
 import type {
   Actor,
   DayGroup,
