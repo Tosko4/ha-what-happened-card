@@ -193,3 +193,43 @@ describe("chain merging", () => {
     expect(flat(buildTimeline(hass, [...chain, other], cfg(), NOW))).toHaveLength(2);
   });
 });
+
+describe("event entities", () => {
+  const h = makeHass([
+    state("event.doorbell_ding", "2026-11-08T11:00:00.000+00:00", {
+      friendly_name: "Doorbell",
+      device_class: "doorbell",
+      event_type: "ring",
+    }),
+  ]);
+  const fired = "2026-11-08T11:00:00.000+00:00";
+
+  it("shows one entry for an event the logbook reports several times", () => {
+    // Seen in a real log: one doorbell press written three times with the same state.
+    const entries = [1, 2, 3].map(() =>
+      entry({
+        ago: 3600,
+        entity_id: "event.doorbell_ding",
+        state: fired,
+        attributes: { event_type: "ring" },
+      }),
+    );
+    const items = flat(buildTimeline(h, entries, cfg(), NOW));
+    expect(items).toHaveLength(1);
+    expect(items[0].verb).toBe("rang");
+    expect(items[0].count).toBe(1);
+  });
+
+  it("keeps separate events apart", () => {
+    const entries = [
+      entry({ ago: 3600, entity_id: "event.doorbell_ding", state: fired }),
+      entry({
+        ago: 1800,
+        entity_id: "event.doorbell_ding",
+        state: "2026-11-08T11:30:00.000+00:00",
+      }),
+    ];
+    const items = flat(buildTimeline(h, entries, cfg({ collapse_repeats: false }), NOW));
+    expect(items.map((i) => i.verb)).toEqual(["rang", "rang"]);
+  });
+});

@@ -127,7 +127,13 @@ function toItem(
   let cause = resolveCause(hass, entry);
 
   if (entry.state !== undefined && entry.message === undefined) {
-    ({ verb, tone } = describeState(hass, domain, entry.entity_id, entry.state));
+    ({ verb, tone } = describeState(
+      hass,
+      domain,
+      entry.entity_id,
+      entry.state,
+      entry.attributes?.event_type,
+    ));
   } else {
     const message = entry.message ?? "did something";
     const triggered = message.match(/^triggered(?: by (.+))?$/);
@@ -312,7 +318,25 @@ export function buildTimeline(
     return restarts.some((t) => e.when >= t - 30 && e.when <= t + 180);
   };
 
+  // An event entity's state is the moment it fired, so the same state twice is one event
+  // reported more than once (some integrations write it for every attribute update).
+  const seenEvents = new Set<string>();
   const sorted = list
+    .filter((e) => {
+      if (
+        domainOf(e) !== "event" ||
+        !e.entity_id ||
+        e.state === undefined ||
+        e.state === "unavailable" ||
+        e.state === "unknown"
+      ) {
+        return true;
+      }
+      const key = `${e.entity_id}|${e.state}`;
+      if (seenEvents.has(key)) return false;
+      seenEvents.add(key);
+      return true;
+    })
     .filter((e) => {
       const ms = e.when * 1000;
       return ms >= since && ms <= now + FUTURE_TOLERANCE_MS;
