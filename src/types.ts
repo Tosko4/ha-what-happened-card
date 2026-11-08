@@ -192,6 +192,8 @@ export interface TimelineItem {
   details?: string[];
   /** Full sentence for entries that are not "subject + verb" (planner log). */
   text?: string;
+  /** Kept only because it started an automation; dropped when nothing was folded under it. */
+  soft?: boolean;
   /** Built from an integration (not the logbook): never merged with neighbours. */
   rich?: boolean;
   /** For integration entries: a run has a start entry and a finish entry. */

@@ -175,12 +175,53 @@ describe("one action, one entry", () => {
     expect(build([...press, ...later])).toHaveLength(2);
   });
 
-  it("keeps an entity the user asked for as a row of its own", () => {
-    const result = build(press, { also_show_entities: ["text.b35"] });
-    // the picked display is a row of its own, not nested under the press
-    expect(result.map((i) => i.name)).toContain('JadivClock 3.5" Broadcast');
-    const head = result.find((i) => i.name === "4 – Prídem onedlho")!;
-    expect(head.effects!.map((e) => e.entityId)).not.toContain("text.b35");
+  it("shows an entity the user asked for as a line of the action that caused it", () => {
+    const plain = build(press, { also_show_entities: [] })[0].effects!;
+    const result = build(press, { also_show_entities: ["text.b35", "text.b43", "text.b24"] });
+    // still one entry: the picked displays are not left behind as rows of their own
+    expect(result).toHaveLength(1);
+    expect(result[0].effects!.length).toBe(plain.length);
+    expect(result[0].effects!.map((e) => e.name).join(" ")).toContain("3 text entities");
+  });
+
+  it("shows a script that switched on and off as one line that says it ran", () => {
+    const withScript = [
+      ...press,
+      entry({
+        ago: 98,
+        entity_id: "script.tts",
+        name: "TTS Announce Script",
+        state: "on",
+        ...viaCode,
+      }),
+      entry({
+        ago: 97,
+        entity_id: "script.tts",
+        name: "TTS Announce Script",
+        state: "off",
+        ...viaCode,
+      }),
+    ];
+    const scriptHass = makeHass([
+      ...Object.values(hass.states),
+      state("script.tts", "off", { friendly_name: "TTS Announce Script" }),
+    ]);
+    const result = buildTimeline(
+      scriptHass,
+      withScript,
+      cfg({ also_show_domains: ["text", "input_select", "script"] }),
+      NOW,
+      undefined,
+      undefined,
+      () => say,
+    ).flatMap((g) => g.items);
+    expect(result).toHaveLength(1);
+    const lines = result[0].effects!.map((e) => `${e.name} ${e.verb}`);
+    expect(lines.filter((l) => l.startsWith("TTS Announce Script"))).toEqual([
+      "TTS Announce Script ran",
+    ]);
+    expect(lines.join(" ")).not.toContain("turned on");
+    expect(lines.join(" ")).not.toContain("turned off");
   });
 
   it("is off when the user picks what to see", () => {
@@ -247,5 +288,171 @@ describe("icon colors", () => {
     ).flatMap((g) => g.items);
     const text = head.effects!.find((e) => e.name.includes("text entities"))!;
     expect(text.accent).toBe("var(--orange-color, #ff9800)");
+  });
+});
+
+describe("any action, not just one button", () => {
+  // The press came from a device on the wall: nobody is on record as having done it.
+  const wallPress = (ago: number) =>
+    entry({
+      ago,
+      entity_id: "input_button.prid",
+      name: "4 – Prídem onedlho",
+      state: "2026-11-08T16:38:00",
+    });
+  const text = (id: string, name: string, ago: number, withTrigger: boolean) =>
+    entry({
+      ago,
+      entity_id: id,
+      name,
+      state: "Kod 4",
+      context_event_type: "automation_triggered",
+      context_entity_id: "automation.code",
+      ...(withTrigger ? { context_source: "input_button.prid was pressed" } : {}),
+    });
+
+  const action = (withTriggerOnTexts: boolean): LogbookEntry[] => [
+    wallPress(100),
+    entry({
+      ago: 99,
+      entity_id: "automation.code",
+      domain: "automation",
+      name: "DevControl – Hlásenie kódu (spracovanie)",
+      message: "triggered by input_button.prid was pressed",
+      source: "input_button.prid was pressed",
+    }),
+    text("text.b35", 'JadivClock 3.5" Broadcast', 98, withTriggerOnTexts),
+    text("text.b43", 'JadivClock4.3" Jedáleň JadivClock Broadcast', 98, withTriggerOnTexts),
+    text("text.b24", 'JadivClock 2.4" Broadcast', 98, withTriggerOnTexts),
+  ];
+
+  it("is headed by a press that nobody is on record for", () => {
+    const result = build(action(true));
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe("4 – Prídem onedlho");
+    expect(result[0].verb).toBe("was pressed");
+    expect(result[0].cause).toBeUndefined();
+    expect(result[0].effects!.map((e) => `${e.name} ${e.verb}`)).toEqual([
+      "Atom Echo 01 said “Kod 4”",
+      "3 text entities changed to Kod 4",
+    ]);
+  });
+
+  it("keeps effects together although only some of them name their trigger", () => {
+    const result = build(action(false));
+    expect(result).toHaveLength(1);
+    expect(result[0].effects).toHaveLength(2);
+  });
+
+  it("shows the press on its own when it only caused one effect that is not worth a line", () => {
+    // the press is dropped when nothing is folded under it and it is not worth a row itself
+    const lonely = [wallPress(100)];
+    expect(build(lonely)).toHaveLength(0);
+  });
+
+  it("does not mix two presses that happen seconds apart", () => {
+    const second = {
+      ...action(true)[0],
+      entity_id: "input_button.other",
+      name: "Other",
+      when: NOW / 1000 - 96,
+    };
+    const hassTwo = makeHass([
+      ...Object.values(hass.states),
+      state("input_button.other", "unknown", { friendly_name: "Other" }),
+    ]);
+    const entries = [
+      ...action(true),
+      second,
+      entry({
+        ago: 95,
+        entity_id: "text.b35",
+        name: 'JadivClock 3.5" Broadcast',
+        state: "Kod 9",
+        context_event_type: "automation_triggered",
+        context_entity_id: "automation.code",
+        context_source: "input_button.other was pressed",
+      }),
+      entry({
+        ago: 95,
+        entity_id: "text.b24",
+        name: 'JadivClock 2.4" Broadcast',
+        state: "Kod 9",
+        context_event_type: "automation_triggered",
+        context_entity_id: "automation.code",
+        context_source: "input_button.other was pressed",
+      }),
+    ];
+    const result = buildTimeline(
+      hassTwo,
+      entries,
+      cfg(),
+      NOW,
+      undefined,
+      undefined,
+      () => say,
+    ).flatMap((g) => g.items);
+    expect(result.map((i) => i.name).sort()).toEqual(["4 – Prídem onedlho", "Other"].sort());
+  });
+});
+
+describe("review findings", () => {
+  const viaPress = (id: string) => ({
+    context_event_type: "automation_triggered",
+    context_entity_id: "automation.code",
+    context_source: `${id} was pressed`,
+  });
+
+  it("keeps two triggers apart even when their own rows are not in the log", () => {
+    const hassTwo = makeHass([
+      ...Object.values(hass.states),
+      state("input_button.a", "unknown", { friendly_name: "Button A" }),
+      state("input_button.b", "unknown", { friendly_name: "Button B" }),
+    ]);
+    const entries = [
+      entry({
+        ago: 100,
+        entity_id: "text.b35",
+        name: 'JadivClock 3.5" Broadcast',
+        state: "A",
+        ...viaPress("input_button.a"),
+      }),
+      entry({
+        ago: 100,
+        entity_id: "text.b24",
+        name: 'JadivClock 2.4" Broadcast',
+        state: "A",
+        ...viaPress("input_button.a"),
+      }),
+      entry({
+        ago: 95,
+        entity_id: "text.b35",
+        name: 'JadivClock 3.5" Broadcast',
+        state: "B",
+        ...viaPress("input_button.b"),
+      }),
+      entry({
+        ago: 95,
+        entity_id: "text.b24",
+        name: 'JadivClock 2.4" Broadcast',
+        state: "B",
+        ...viaPress("input_button.b"),
+      }),
+    ];
+    const result = buildTimeline(hassTwo, entries, cfg(), NOW).flatMap((g) => g.items);
+    expect(result).toHaveLength(2);
+    expect(result.map((i) => i.cause?.trigger).sort()).toEqual([
+      "Button A was pressed",
+      "Button B was pressed",
+    ]);
+  });
+
+  it("heads a single effect by the press when the press is not worth a row by itself", () => {
+    const result = build([press[0], press[1]].map((e) => ({ ...e, context_user_id: undefined })));
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe("4 – Prídem onedlho");
+    expect(result[0].effects!.map((e) => `${e.name} ${e.verb}`)).toEqual([
+      "Atom Echo 01 said “Kod 4”",
+    ]);
   });
 });

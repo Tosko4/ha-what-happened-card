@@ -54,22 +54,84 @@ function viaOf(effects: TimelineItem[]): Actor[] {
   return out;
 }
 
-export function groupEffects(
-  hass: HomeAssistant,
-  items: TimelineItem[],
-  /** Entities the user asked to see: they stay rows of their own, never nested. */
-  picked: ReadonlySet<string> = new Set(),
-): TimelineItem[] {
-  // Everything done by an automation or script, grouped by what started it.
+/** A script switching on and off is a script that ran. */
+function isScriptState(item: TimelineItem): boolean {
+  return item.domain === "script" && !item.isRun && /^was turned (on|off)$/.test(item.verb);
+}
+
+/** One "ran" line per script, however many times its state flipped. */
+function scriptRuns(states: TimelineItem[]): TimelineItem[] {
+  const seen = new Map<string, TimelineItem>();
+  for (const item of states) {
+    const key = item.entityId ?? item.name;
+    if (!seen.has(key))
+      seen.set(key, { ...item, verb: "ran", stateValue: undefined, tone: "active" });
+  }
+  return [...seen.values()];
+}
+
+function triggerOf(cluster: TimelineItem[]) {
+  const withTrigger = cluster.find((c) => c.cause?.trigger);
+  return withTrigger
+    ? {
+        trigger: withTrigger.cause!.trigger,
+        triggerEntityId: withTrigger.cause!.triggerEntityId,
+      }
+    : undefined;
+}
+
+/**
+ * Which trigger an effect belongs to. The entity that started the automation identifies it
+ * whether or not its own log row is available; without an entity, the trigger text does.
+ */
+function triggerKey(item: TimelineItem, useText: boolean): string | undefined {
+  const cause = item.cause;
+  const entity = cause?.triggerEntityId ?? cause?.source?.entityId;
+  if (entity) return `entity|${entity}`;
+  return useText && cause?.trigger ? `text|${cause.trigger}` : undefined;
+}
+
+/**
+ * Two different triggers inside one burst (two buttons pressed within seconds) are two actions.
+ * Effects that do not say what triggered them join the nearest one.
+ */
+function splitByTrigger(clusters: TimelineItem[][]): TimelineItem[][] {
+  return clusters.flatMap((cluster) => {
+    const anyEntity = cluster.some((c) => c.cause?.triggerEntityId ?? c.cause?.source?.entityId);
+    const keyOf = (c: TimelineItem) => triggerKey(c, !anyEntity);
+    const keyed = cluster.filter((c) => keyOf(c));
+    const keys = new Set(keyed.map((c) => keyOf(c)!));
+    if (keys.size <= 1) return [cluster];
+    const parts = new Map<string, TimelineItem[]>([...keys].map((k) => [k, []]));
+    for (const c of cluster) {
+      let key = keyOf(c);
+      if (!key) {
+        let best = Infinity;
+        for (const other of keyed) {
+          const gap = Math.abs(other.when - c.when);
+          if (gap < best) {
+            best = gap;
+            key = keyOf(other);
+          }
+        }
+      }
+      parts.get(key!)!.push(c);
+    }
+    return [...parts.values()];
+  });
+}
+
+export function groupEffects(hass: HomeAssistant, items: TimelineItem[]): TimelineItem[] {
+  // Everything one automation or script did. Effects of one action happen within seconds of
+  // each other; what each effect knows about its trigger varies (one logbook line names the
+  // pressed button, the next does not), so the automation is what ties them together.
   const byKey = new Map<string, TimelineItem[]>();
   for (const item of items) {
     const cause = item.cause;
     const actor = cause?.actor;
     if (!actor?.entityId || (actor.kind !== "automation" && actor.kind !== "script")) continue;
-    if (item.effects || (item.entityId && picked.has(item.entityId))) continue;
-    const key = cause?.source
-      ? `source|${cause.source.key}`
-      : `run|${actor.entityId}|${cause?.trigger ?? ""}`;
+    if (item.effects) continue;
+    const key = actor.entityId;
     const list = byKey.get(key);
     if (list) list.push(item);
     else byKey.set(key, [item]);
@@ -79,9 +141,7 @@ export function groupEffects(
   const added: TimelineItem[] = [];
   // A script or automation calls input_select.select_option; the log records that change as a
   // bare service call with no trace of who made it.
-  const loose = items.filter(
-    (i) => !i.rich && i.cause?.actor?.kind === "service" && !(i.entityId && picked.has(i.entityId)),
-  );
+  const loose = items.filter((i) => !i.rich && i.cause?.actor?.kind === "service");
 
   for (const [, all] of byKey) {
     // Split into bursts: effects of one press happen within seconds of each other.
@@ -93,12 +153,19 @@ export function groupEffects(
       else clusters.push([item]);
     }
 
-    for (const cluster of clusters) {
+    for (const cluster of splitByTrigger(clusters)) {
       cluster.sort((a, b) => a.when - b.when);
       const source = cluster.find((c) => c.cause?.source)?.cause?.source;
-      // One effect of a sensor is better told in one line; one effect of a person's press is
-      // told as "pressed by Ján, which caused ...".
-      if (cluster.length < 2 && source?.cause?.actor?.kind !== "user") continue;
+      // One effect of a visible sensor is better told in one line. One effect of a person's
+      // press, or of a press that is not worth a row by itself, is told as "pressed, which
+      // caused ...", the same way as several effects.
+      // "TTS Announce Script was turned on" and "turned off" are one thing: it ran. They do not
+      // count as separate effects, and appear as a single "ran" line.
+      const states = cluster.filter(isScriptState);
+      const real = cluster.filter((c) => !states.includes(c));
+      if (real.length === 0) continue;
+      if (real.length < 2 && source?.cause?.actor?.kind !== "user" && !source?.soft) continue;
+      cluster.splice(0, cluster.length, ...real);
       for (const item of loose) {
         if (
           !removed.has(item) &&
@@ -112,12 +179,13 @@ export function groupEffects(
       cluster.sort((a, b) => a.when - b.when);
       const first = cluster[0];
       const via = viaOf(cluster);
-      const effects = cluster.map(line);
+      const effects = [...cluster, ...scriptRuns(states)].sort((a, b) => a.when - b.when).map(line);
 
       let head: TimelineItem;
       if (source) {
         head = {
           ...source,
+          soft: undefined,
           key: `group|${source.key}|${first.key}`,
           effects,
           via,
@@ -140,14 +208,12 @@ export function groupEffects(
           isRun: false,
           count: 1,
           rich: true,
-          cause: first.cause?.trigger
-            ? { trigger: first.cause.trigger, triggerEntityId: first.cause.triggerEntityId }
-            : undefined,
+          cause: triggerOf(cluster),
           effects,
           accent: stateColor(kind, undefined, "on", "active", true),
         };
       }
-      for (const c of cluster) removed.add(c);
+      for (const c of [...cluster, ...states]) removed.add(c);
       added.push(head);
     }
   }
