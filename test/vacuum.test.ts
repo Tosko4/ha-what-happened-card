@@ -108,6 +108,28 @@ describe("vacuumItems", () => {
 });
 
 describe("timeline with vacuum data", () => {
+  it("keeps a logbook line when its integration entry is outside the window", () => {
+    const oldRun: VacuumData = {
+      entityId: "vacuum.robot",
+      log: [],
+      runs: [{ started: s - (24 * 3600 + 180), minutes: 1 }],
+    };
+    // The run started just outside the 24h window; the plain "cleaning" line is just inside it.
+    const logbook = [
+      entry({
+        ago: 24 * 3600 - 60,
+        entity_id: "vacuum.robot",
+        name: "Robot vacuum",
+        state: "cleaning",
+      }),
+    ];
+    const items = buildTimeline(hass, logbook, cfg, NOW, undefined, {
+      items: vacuumItems(hass, oldRun, cfg),
+      vacuums: new Set(["vacuum.robot"]),
+    }).flatMap((g) => g.items);
+    expect(items.map((i) => i.verb)).toEqual(["started cleaning"]);
+  });
+
   const extra = () => ({ items: vacuumItems(hass, data, cfg), vacuums: new Set(["vacuum.robot"]) });
   const verbs = (logbook: ReturnType<typeof entry>[]) =>
     buildTimeline(hass, logbook, cfg, NOW, undefined, extra())

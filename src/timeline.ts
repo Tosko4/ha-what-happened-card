@@ -224,18 +224,22 @@ export function buildTimeline(
   const maxEntries = effectiveMaxEntries(config);
   const collapse = config.collapse_repeats ?? DEFAULTS.collapse_repeats;
 
+  // Integration items outside the window are dropped first, so they can never suppress a
+  // logbook line that is still inside it.
+  const richItems = (extra?.items ?? []).filter(
+    (i) => i.when >= since && i.when <= now + FUTURE_TOLERANCE_MS,
+  );
+  const standIns = extra ? { items: richItems, vacuums: extra.vacuums } : undefined;
+
   const sorted = [...entries]
     .filter((e) => {
       const ms = e.when * 1000;
       return ms >= since && ms <= now + FUTURE_TOLERANCE_MS;
     })
     .filter((e) => passesFilters(e, config, allowed, hass))
-    .filter((e) => !isStandIn(e, extra))
+    .filter((e) => !isStandIn(e, standIns))
     .sort((a, b) => b.when - a.when);
 
-  const richItems = (extra?.items ?? []).filter(
-    (i) => i.when >= since && i.when <= now + FUTURE_TOLERANCE_MS,
-  );
   const chained = mergeChains(
     [...sorted.map((entry) => toItem(hass, entry, config)), ...richItems].sort(
       (a, b) => b.when - a.when,
